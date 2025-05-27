@@ -1,7 +1,6 @@
 'use client'; 
 import { useState, ChangeEvent, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import Footer from '../../components/Footer/Footer';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -12,33 +11,56 @@ const Register = () => {
   });
 
   const [error, setError] = useState('');
-  const router = useRouter(); // substitui useNavigate
+  const [successMessage, setSuccessMessage] = useState('');
+  const router = useRouter();
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+
     if (formData.senha !== formData.confirmarSenha) {
       setError('As senhas não correspondem.'); 
+      setSuccessMessage('');
       return;
     }
 
-    // Adicionar a lógica para enviar os dados para uma API.
-    console.log('Dados do formulário:', formData);
+    try {
+      const res = await fetch('http://localhost:5000/api/users/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nome: formData.nome,
+          email: formData.email,
+          senha: formData.senha
+        })
+      });
 
-    setFormData({
-      nome: '',
-      email: '',
-      senha: '',
-      confirmarSenha: '',
-    });
+      const data = await res.json();
+
+      if (res.ok) {
+        setSuccessMessage(data.message);
+        setError('');
+        setFormData({ nome: '', email: '', senha: '', confirmarSenha: '' });
+        setTimeout(() => {
+          router.push('/');
+        }, 2000); // aguarda 2 segundos antes de redirecionar
+      } else {
+        setError(data.error || 'Erro ao criar usuário');
+        setSuccessMessage('');
+      }
+    } catch (err) {
+      console.error(err);
+      setError('Erro ao conectar com o servidor.');
+      setSuccessMessage('');
+    }
   };
 
   const handleGoHome = () => {
-    router.push('/'); // Redireciona para a home
+    router.push('/');
   };
 
   return (
@@ -47,11 +69,25 @@ const Register = () => {
       <div className="w-full h-[20vh] bg-sky-900" />
 
       {/* Card do cadastro */}
-      <main className="font-['Plus_Jakarta_Sans'] w-full max-w-sm mx-auto bg-[#FAFAFC] p-6 rounded-lg shadow-md -mt-18 z-10 relative ">
+      <main className="font-['Plus_Jakarta_Sans'] w-full max-w-sm mx-auto bg-[#FAFAFC] p-6 rounded-lg shadow-md -mt-18 z-10 relative">
         <section className="flex flex-col gap-3">
           <div>
             <h1 className="text-center text-gray-700 text-2xl font-semibold mt-4 mb-2">Cadastre-se</h1>
           </div>
+
+          {/* Mensagem de sucesso */}
+          {successMessage && (
+            <div className="text-green-700 bg-green-100 border border-green-400 p-3 rounded mb-4 text-center">
+              {successMessage}
+            </div>
+          )}
+
+          {/* Mensagem de erro */}
+          {error && (
+            <div className="text-red-700 bg-red-100 border border-red-400 p-3 rounded mb-4 text-center">
+              {error}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <fieldset className="border-0 p-0 m-0 flex flex-col gap-4">
@@ -97,7 +133,6 @@ const Register = () => {
                 onChange={handleChange}
                 required
               />
-              {error && <p className="text-red-600 text-sm mt-1">{error}</p>}
             </fieldset>
 
             <div className="flex items-center gap-2">
