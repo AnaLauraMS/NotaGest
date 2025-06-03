@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import {useEffect } from 'react';
 
 interface AddPropertyModalProps {
     onClose: () => void;
@@ -63,6 +64,15 @@ const AddPropertyModal = ({ onClose, onAddProperty }: AddPropertyModalProps) => 
         onAddProperty('Imóvel adicionado com sucesso');
         onClose(); // Fecha o modal após a adição
     };
+
+    //useEffect para retirar o scroll da lateral no scroll
+    useEffect(() => {
+        document.body.style.overflow = "hidden";
+        return () => {
+          document.body.style.overflow = "";
+        };
+      }, []);
+
 
     const handleCancel = () => {
         onClose(); // Fecha o modal quando o usuário clica em "Cancelar"
