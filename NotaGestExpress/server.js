@@ -1,3 +1,4 @@
+//ponto de entrada no back, configura o servidor e a rota do cliente
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
@@ -7,10 +8,10 @@ dotenv.config();
 
 const app = express();
 
-app.use(cors());
-app.use(express.json());
+app.use(cors()); //permissão que o front acesse o backend
+app.use(express.json()); //no corpo da requisição permitimos JSON
 
-app.use('/api/users', userRoutes);
+app.use('/api/users', userRoutes); //rota base para os se cadastrarem clientes
 
 const PORT = process.env.PORT || 5000;
 

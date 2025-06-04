@@ -1,5 +1,7 @@
+// chamando o modelo de usuario
 const User = require("../models/userModel");
 
+//chama o frontend, está validando e chama o model
 const registerUser = (req, res) => {
   const { nome, email, senha } = req.body;
 

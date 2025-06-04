@@ -1,3 +1,4 @@
+// model está fazendo a inserção no banco de dados
 const db = require('../config/db');
 
 const createUser = (nome, email, senha, callback) => {

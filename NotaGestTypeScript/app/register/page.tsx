@@ -1,6 +1,7 @@
 'use client'; 
 import { useState, ChangeEvent, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import axios from 'axios';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -19,45 +20,36 @@ const Register = () => {
     setFormData({ ...formData, [name]: value });
   };
 
+  {/*usuário preenchendo o cadastro a função envia dados via AXIOS para o backend*/}
   const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (formData.senha !== formData.confirmarSenha) {
-      setError('As senhas não correspondem.'); 
-      setSuccessMessage('');
-      return;
-    }
+  if (formData.senha !== formData.confirmarSenha) {
+    setError('As senhas não correspondem.');
+    setSuccessMessage('');
+    return;
+  }
 
-    try {
-      const res = await fetch('http://localhost:5000/api/users/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nome: formData.nome,
-          email: formData.email,
-          senha: formData.senha
-        })
-      });
+  try {
+    const response = await axios.post('http://localhost:5000/api/users/register', {
+      nome: formData.nome,
+      email: formData.email,
+      senha: formData.senha
+    });
 
-      const data = await res.json();
+    setSuccessMessage(response.data.message);
+    setError('');
+    setFormData({ nome: '', email: '', senha: '', confirmarSenha: '' });
 
-      if (res.ok) {
-        setSuccessMessage(data.message);
-        setError('');
-        setFormData({ nome: '', email: '', senha: '', confirmarSenha: '' });
-        setTimeout(() => {
-          router.push('/');
-        }, 2000); // aguarda 2 segundos antes de redirecionar
-      } else {
-        setError(data.error || 'Erro ao criar usuário');
-        setSuccessMessage('');
-      }
-    } catch (err) {
-      console.error(err);
-      setError('Erro ao conectar com o servidor.');
-      setSuccessMessage('');
-    }
-  };
+    setTimeout(() => {
+      router.push('/');
+    }, 2000);
+  } catch (err: any) {
+    console.error(err);
+    setError(err.response?.data?.error || 'Erro ao conectar com o servidor.');
+    setSuccessMessage('');
+  }
+};
 
   const handleGoHome = () => {
     router.push('/');

@@ -1,3 +1,4 @@
+//rota de post para o cliente, chamando o registerUser
 const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
