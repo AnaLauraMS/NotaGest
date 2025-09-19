@@ -1,9 +1,21 @@
-// model está fazendo a inserção no banco de dados
-const db = require('../config/db');
+const mongoose = require('mongoose');
 
-const createUser = (nome, email, senha, callback) => {
-  const sql = 'INSERT INTO usuarios (nome, email, senha) VALUES (?, ?, ?)';
-  db.query(sql, [nome, email, senha], callback);
-};
+const userSchema = new mongoose.Schema({
+    nome: {
+        type: String,
+        required: true
+    },
+    email: {
+        type: String,
+        required: true,
+        unique: true //email tem que ser unico
+    },
+    senha: {
+        type: String,
+        required: true
+    }
+});
 
-module.exports = { createUser };
+const User = mongoose.model('User', userSchema);
+
+module.exports = User;
