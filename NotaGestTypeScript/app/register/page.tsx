@@ -1,4 +1,4 @@
-'use client'; 
+'use client';
 import { useState, ChangeEvent, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
@@ -8,9 +8,10 @@ const Register = () => {
     nome: '',
     email: '',
     senha: '',
-    confirmarSenha: '', 
+    confirmarSenha: '',
   });
 
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const router = useRouter();
@@ -20,36 +21,45 @@ const Register = () => {
     setFormData({ ...formData, [name]: value });
   };
 
-  {/*usuário preenchendo o cadastro a função envia dados via AXIOS para o backend*/}
   const handleSubmit = async (e: FormEvent) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (formData.senha !== formData.confirmarSenha) {
-    setError('As senhas não correspondem.');
-    setSuccessMessage('');
-    return;
-  }
+    // Validação frontend: verifica se as senhas são iguais
+    if (formData.senha !== formData.confirmarSenha) {
+      setError('As senhas não correspondem.');
+      setSuccessMessage('');
+      return;
+    }
+    
+    // Ativa o estado de carregamento para desabilitar o botão
+    setIsLoading(true);
 
-  try {
-    const response = await axios.post('http://localhost:5000/api/users/register', {
-      nome: formData.nome,
-      email: formData.email,
-      senha: formData.senha
-    });
+    try {
+      const response = await axios.post('http://localhost:5000/api/users/register', {
+        nome: formData.nome,
+        email: formData.email,
+        senha: formData.senha
+      });
 
-    setSuccessMessage(response.data.message);
-    setError('');
-    setFormData({ nome: '', email: '', senha: '', confirmarSenha: '' });
+      // Se o backend retornar sucesso (status 201)
+      setSuccessMessage(response.data.message);
+      setError('');
+      setFormData({ nome: '', email: '', senha: '', confirmarSenha: '' });
 
-    setTimeout(() => {
-      router.push('/');
-    }, 2000);
-  } catch (err: any) {
-    console.error(err);
-    setError(err.response?.data?.error || 'Erro ao conectar com o servidor.');
-    setSuccessMessage('');
-  }
-};
+      setTimeout(() => {
+        router.push('/login'); // Redireciona para a página de login após o sucesso
+      }, 2000);
+
+    } catch (err: any) {
+      // Se houver erro, exibe a mensagem de erro do backend
+      setError(err.response?.data?.error || 'Erro ao conectar com o servidor.');
+      setSuccessMessage('');
+
+    } finally {
+      // Desativa o estado de carregamento, independentemente do resultado
+      setIsLoading(false);
+    }
+  };
 
   const handleGoHome = () => {
     router.push('/');
@@ -109,8 +119,6 @@ const Register = () => {
                 className="w-full p-3 border border-gray-300 rounded text-base"
                 type="password"
                 placeholder="Senha"
-                pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?!.*[ !@#$%^&*_=+-]).{6,12}$"
-                title="A senha deve conter entre 6 a 12 caracteres, deve conter pelo menos uma letra maiúscula, um número e não deve conter símbolos."
                 value={formData.senha}
                 onChange={handleChange}
                 required
@@ -141,9 +149,10 @@ const Register = () => {
 
             <button
               type="submit"
-              className="bg-[#fde047] hover:bg-yellow-400 transition transform hover:scale-105 text-black py-2 rounded cursor-pointer"
+              className="bg-[#fde047] hover:bg-yellow-400 transition transform hover:scale-105 text-black py-2 rounded cursor-pointer disabled:bg-gray-400 disabled:cursor-not-allowed"
+              disabled={isLoading}
             >
-              Cadastrar
+              {isLoading ? 'Cadastrando...' : 'Cadastrar'}
             </button>
           </form>
 
