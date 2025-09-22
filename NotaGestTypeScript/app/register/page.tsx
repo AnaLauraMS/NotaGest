@@ -3,6 +3,8 @@ import { useState, ChangeEvent, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 
+type MessageType = 'success' | 'error';
+
 const Register = () => {
   const [formData, setFormData] = useState({
     nome: '',
@@ -12,8 +14,7 @@ const Register = () => {
   });
 
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
+  const [toastMessage, setToastMessage] = useState<{ msg: string; type: MessageType } | null>(null);
   const router = useRouter();
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -21,42 +22,40 @@ const Register = () => {
     setFormData({ ...formData, [name]: value });
   };
 
+  const showToast = (msg: string, type: MessageType) => {
+    setToastMessage({ msg, type });
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 5000); // A mensagem desaparece após 5 segundos
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
-    // Validação frontend: verifica se as senhas são iguais
     if (formData.senha !== formData.confirmarSenha) {
-      setError('As senhas não correspondem.');
-      setSuccessMessage('');
+      showToast('As senhas não correspondem.', 'error');
       return;
     }
-    
-    // Ativa o estado de carregamento para desabilitar o botão
+
     setIsLoading(true);
 
     try {
       const response = await axios.post('http://localhost:5000/api/users/register', {
         nome: formData.nome,
         email: formData.email,
-        senha: formData.senha
+        senha: formData.senha,
       });
 
-      // Se o backend retornar sucesso (status 201)
-      setSuccessMessage(response.data.message);
-      setError('');
+      showToast(response.data.message, 'success');
       setFormData({ nome: '', email: '', senha: '', confirmarSenha: '' });
 
       setTimeout(() => {
-        router.push('/login'); // Redireciona para a página de login após o sucesso
+        router.push('/login');
       }, 2000);
-
     } catch (err: any) {
-      // Se houver erro, exibe a mensagem de erro do backend
-      setError(err.response?.data?.error || 'Erro ao conectar com o servidor.');
-      setSuccessMessage('');
-
+      const errorMessage = err.response?.data?.error || 'Erro ao conectar com o servidor.';
+      showToast(errorMessage, 'error');
     } finally {
-      // Desativa o estado de carregamento, independentemente do resultado
       setIsLoading(false);
     }
   };
@@ -70,26 +69,23 @@ const Register = () => {
       {/* Faixa superior azul */}
       <div className="w-full h-[20vh] bg-sky-900" />
 
+      {/* Toast de mensagem, posicionado no topo da tela */}
+      {toastMessage && (
+        <div
+          className={`fixed top-4 left-1/2 -translate-x-1/2 p-4 rounded-md shadow-lg transition-all duration-300 z-50 ${
+            toastMessage.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+          }`}
+        >
+          {toastMessage.msg}
+        </div>
+      )}
+
       {/* Card do cadastro */}
       <main className="font-['Plus_Jakarta_Sans'] w-full max-w-sm mx-auto bg-[#FAFAFC] p-6 rounded-lg shadow-md -mt-18 z-10 relative">
         <section className="flex flex-col gap-3">
           <div>
             <h1 className="text-center text-gray-700 text-2xl font-semibold mt-4 mb-2">Cadastre-se</h1>
           </div>
-
-          {/* Mensagem de sucesso */}
-          {successMessage && (
-            <div className="text-green-700 bg-green-100 border border-green-400 p-3 rounded mb-4 text-center">
-              {successMessage}
-            </div>
-          )}
-
-          {/* Mensagem de erro */}
-          {error && (
-            <div className="text-red-700 bg-red-100 border border-red-400 p-3 rounded mb-4 text-center">
-              {error}
-            </div>
-          )}
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <fieldset className="border-0 p-0 m-0 flex flex-col gap-4">
