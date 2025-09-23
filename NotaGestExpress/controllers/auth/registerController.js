@@ -83,6 +83,7 @@ const getUserById = async (req, res) => {
 // Função para atualizar um usuário por ID
 const updateUser = async (req, res) => {
     try {
+        console.log("Dados recebido para a atualização:", req.body);
         const updatedUser = await User.findByIdAndUpdate(
             req.params.id,
             req.body,

@@ -9,16 +9,43 @@ import GastosChart from '../../components/Graphics/Graphics';
 import Table from '../../components/Table/Table';
 import { IoTrashBinSharp } from 'react-icons/io5';
 import Link from 'next/link';
+import axios from 'axios';
 
 const DashboardPage = () => {
-  const [showMenu, setShowMenu] = useState(false); // Controle do menu dropdown
+  const [showMenu, setShowMenu] = useState(false);
+  const [user, setUser] = useState({ name: "Carregando...", profileImage: "/path/to/default/profile/image.jpg" });
   const menuRef = useRef(null);
   const router = useRouter();
 
-  const user = {
-    name: "Nome do Usuário",
-    profileImage: "/path/to/default/profile/image.jpg"
-  };
+  // Função para buscar os dados do usuário no backend
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        router.push('/login');
+        return;
+      }
+
+      try {
+        const response = await axios.get('http://localhost:5000/api/users/profile', {
+          headers: {
+            'x-auth-token': token,
+          },
+        });
+        
+        setUser({
+          name: response.data.nome,
+          profileImage: response.data.profileImage || "/path/to/default/profile/image.jpg",
+        });
+
+      } catch (err) {
+        console.error('Erro ao buscar dados do usuário:', err);
+        router.push('/login');
+      }
+    };
+
+    fetchUserData();
+  }, [router]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -37,12 +64,14 @@ const DashboardPage = () => {
   }, [showMenu]);
 
   const handleLogoff = () => {
+    // Remove o token para deslogar o usuário
+    localStorage.removeItem('token');
     console.log("Usuário deslogado");
     router.push('/');
   };
 
   const navigateToUploads = () => {
-    router.push('/uploads'); // Redireciona para a página de uploads
+    router.push('/uploads');
   };
 
   return (
@@ -74,7 +103,7 @@ const DashboardPage = () => {
         <aside className="w-60 bg-gray-200 min-h-screen p-4">
           <nav className="flex flex-col space-y-2">
             <button
-              onClick={navigateToUploads} // Adiciona a navegação para /uploads
+              onClick={navigateToUploads}
               className="text-left py-2 border-b border-gray-400 text-sky-900 hover:font-semibold transition"
             >
               Adicionar Arquivo
@@ -95,11 +124,11 @@ const DashboardPage = () => {
         </aside>
 
         {/* Conteúdo principal */}
-        <main className="mt-25 ml-8 ">
+        <main className="mt-25 ml-8">
           {/* Gráficos e Tabela */}
           <div className="flex flex-row justify-center gap-6 align-center">
             {/* Gráfico */}
-            <div className="align-center w-1/2 bg-white shadow-md rounded-lg p-4">                                
+            <div className="align-center w-1/2 bg-white shadow-md rounded-lg p-4">
               <GastosChart />
             </div>
 
