@@ -44,19 +44,15 @@ const Login: React.FC = () => {
         senha: credentials.senha,
       });
 
-      // Se o login for um sucesso, o backend retorna um token
       const { token } = response.data;
-
-      // O passo mais importante: salva o token no localStorage
       localStorage.setItem('token', token);
-
+      
       showToast(response.data.message, 'success');
 
-      // Redireciona o usuário para o dashboard
       setTimeout(() => {
         router.push('/dashboard');
       }, 2000);
-
+      
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || 'Erro ao conectar com o servidor.';
       showToast(errorMessage, 'error');
@@ -85,7 +81,7 @@ const Login: React.FC = () => {
         </div>
       )}
 
-      {/* Card do login */}
+      {/* Card de login */}
       <main className="font-['Plus_Jakarta_Sans',sans-serif] w-full max-w-sm mx-auto bg-[#FAFAFC] p-6 rounded-t-lg -mt-16 relative shadow-lg z-10">
         <section>
           <div className="text-center">
