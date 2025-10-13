@@ -1,12 +1,15 @@
+// Arquivo: Microsserviço/server.js
+
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const connectDB = require('./config/mongoDb'); // O Microsserviço conecta o DB
-const userRoutes = require('./routes/userRoutes'); // Rotas de CRUD
+const connectDB = require('./config/mongoDb'); 
+
+const authRoutes = require('./routes/authRoutes'); 
 
 dotenv.config();
 
-// conexão ao banco de dados MongoDB
+// Conexão ao banco de dados MongoDB (Cada microsserviço tem o seu DB)
 connectDB();
 
 const app = express();
@@ -14,8 +17,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// rota base para as funcionalidades de usuário
-app.use('/api/users', userRoutes);
+// Rota base para as funcionalidades de Autenticação
+app.use('/api/auth', authRoutes);
 
 const PORT = process.env.PORT || 5001;
 
