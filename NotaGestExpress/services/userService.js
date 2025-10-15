@@ -1,32 +1,68 @@
-// Importa o modelo do usuário e o bcrypt
 const User = require('../models/userModel');
-const bcrypt = require('bcryptjs');
 
-// Função de serviço para registrar um novo usuário
-const registerUser = async (nome, email, senha) => {
-    // 1. Verifica se o email já está cadastrado
-    const userExists = await User.findOne({ email });
-    if (userExists) {
-        throw new Error('Email já cadastrado.');
+// --- A. CRIAÇÃO DE PERFIL (Chamada Interna do Serviço de Identidade) ---
+// O Serviço de Identidade chama esta função para criar o perfil.
+const createProfile = async (userId, email, nome) => {
+    try {
+        const newProfile = new User({
+            userId,           // Novo campo principal
+            email,            
+            nome,             
+        });
+        
+        await newProfile.save();
+        return newProfile;
+    } catch (error) {
+        // Trate erro de chave duplicada (userId ou email)
+        if (error.code === 11000) {
+            throw new Error('Usuário já existe.');
+        }
+        console.error('Erro ao criar perfil:', error);
+        throw new Error('Falha na criação do perfil.');
     }
-
-    // 2. Gera um 'salt' e criptografa a senha
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(senha, salt);
-
-    // 3. Cria uma nova instância do usuário com a senha criptografada
-    const newUser = new User({
-        nome,
-        email,
-        senha: hashedPassword
-    });
-
-    // 4. Salva o novo usuário no banco de dados
-    await newUser.save();
-
-    // 5. Retorna o novo usuário criado
-    return newUser;
 };
 
-// Exporta a função
-module.exports = { registerUser };
+
+// --- B. READ (GET) ---
+const getProfileById = async (userId) => {
+    // Busca pelo nosso novo campo principal 'userId'
+    return await User.findOne({ userId });
+};
+
+
+// --- C. UPDATE (PUT) ---
+const updateProfileById = async (userId, updateData) => {
+    // Garante que o ID e o Email NÃO possam ser alterados via update do perfil.
+    delete updateData.userId; 
+    delete updateData.email; 
+
+    // Atualiza o perfil
+    const updatedProfile = await User.findOneAndUpdate(
+        { userId }, 
+        { $set: updateData, updatedAt: Date.now() }, 
+        { new: true, runValidators: true }
+    );
+
+    return updatedProfile;
+};
+
+
+// --- D. DELETE ---
+const deleteProfileById = async (userId) => {
+    // Remove o perfil
+    const result = await User.deleteOne({ userId });
+    
+    if (result.deletedCount > 0) {
+        // Se a exclusão for bem-sucedida, o Controller precisa chamar a notificação
+        // para que o Serviço de Identidade também exclua a conta de login!
+        return true; 
+    }
+    return false;
+};
+
+module.exports = {
+    createProfile,
+    getProfileById,
+    updateProfileById,
+    deleteProfileById,
+};

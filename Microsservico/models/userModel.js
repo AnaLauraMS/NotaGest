@@ -1,27 +1,21 @@
-// importação do Mongoose
+// userModel.js (Microsserviço de Identidade)
+
 const mongoose = require('mongoose');
 
-// definição do esquema do usuário no MongoDB
 const userSchema = new mongoose.Schema({
-    // nome do usuário: obrigatório e string
-    nome: {
-        type: String,
-        required: true
-    },
-    // email do usuário: obrigatório e deve ser único e string
+    // email do usuário: obrigatório e deve ser único
     email: {
         type: String,
         required: true,
         unique: true
     },
-    // senha do usuário: obrigatório e string
+    // senha do usuário: obrigatório
     senha: {
         type: String,
         required: true
     }
+    // O campo 'nome' FOI REMOVIDO para o Backend (NotaGestExpress)
 });
 
-// criação e exportação do modelo 'User' com base no esquema definido
 const User = mongoose.model('User', userSchema);
-
 module.exports = User;
