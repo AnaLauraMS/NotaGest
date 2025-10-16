@@ -62,7 +62,7 @@ const registerUser = async (req, res) => {
         
         // 5. Retornar confirmação
         res.status(201).json({
-            message: 'Usuário criado com sucesso e perfil sincronizado!',
+            message: 'Usuário criado com sucesso!',
             user: { id: newUser._id.toString(), email: newUser.email }
         });
 

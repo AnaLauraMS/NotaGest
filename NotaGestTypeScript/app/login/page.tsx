@@ -2,8 +2,10 @@
 
 import { useState, ChangeEvent, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
-import Footer from '../../components/Footer/Footer';
+// Mantenha axios se for usado em outro lugar, mas usaremos a lógica do serviço
+import axios from 'axios'; 
+// 💡 IMPORTAÇÃO ESSENCIAL: O serviço que faz a chamada para 5001
+import { loginUser, decodeJwt } from '../../utils/authService'; 
 
 type Credentials = {
   email: string;
@@ -31,7 +33,7 @@ const Login: React.FC = () => {
     setToastMessage({ msg, type });
     setTimeout(() => {
       setToastMessage(null);
-    }, 5000); // A mensagem desaparece após 5 segundos
+    }, 5000); 
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -39,22 +41,26 @@ const Login: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:5000/api/users/login', {
-        email: credentials.email,
-        senha: credentials.senha,
-      });
+      const { token, message } = await loginUser(credentials.email, credentials.senha);
 
-      const { token } = response.data;
-      localStorage.setItem('token', token);
+      // 1. Armazena o token de autenticação
+      localStorage.setItem('authToken', token);
       
-      showToast(response.data.message, 'success');
+      // 2. Decodifica o token para extrair o ID do usuário (userId)
+      const { id } = decodeJwt(token);
+      localStorage.setItem('userId', id); 
+      
+      showToast(message, 'success');
 
+      // 3. Redireciona para o Dashboard
       setTimeout(() => {
         router.push('/dashboard');
-      }, 2000);
+      }, 500); // Reduzido para um redirecionamento mais rápido
       
     } catch (err: any) {
-      const errorMessage = err.response?.data?.error || 'Erro ao conectar com o servidor.';
+      console.error("Erro de Login:", err);
+      // O erro agora vem do serviço (ex: 'Credenciais inválidas')
+      const errorMessage = err.message || 'Erro ao conectar com o servidor.';
       showToast(errorMessage, 'error');
     } finally {
       setIsLoading(false);
@@ -70,7 +76,7 @@ const Login: React.FC = () => {
       {/* Faixa superior azul */}
       <div className="w-full h-[30vh] bg-sky-900" />
 
-      {/* Toast de mensagem, posicionado no topo da tela */}
+      {/* Toast de mensagem */}
       {toastMessage && (
         <div
           className={`fixed top-4 left-1/2 -translate-x-1/2 p-4 rounded-md shadow-lg transition-all duration-300 z-50 ${

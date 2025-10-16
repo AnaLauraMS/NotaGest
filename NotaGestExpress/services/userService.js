@@ -5,7 +5,7 @@ const User = require('../models/userModel');
 const createProfile = async (userId, email, nome) => {
     try {
         const newProfile = new User({
-            userId,           // Novo campo principal
+            userId,
             email,            
             nome,             
         });

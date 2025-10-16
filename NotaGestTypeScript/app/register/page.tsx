@@ -1,7 +1,11 @@
+// app/register/page.tsx (Implementação do Formulário)
+
 'use client';
 import { useState, ChangeEvent, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
+// Importação do serviço (AJUSTE O CAMINHO SE NECESSÁRIO)
+import { registerUser } from '../../utils/authService'; 
+import axios from 'axios'; 
 
 type MessageType = 'success' | 'error';
 
@@ -26,7 +30,7 @@ const Register = () => {
     setToastMessage({ msg, type });
     setTimeout(() => {
       setToastMessage(null);
-    }, 5000); // A mensagem desaparece após 5 segundos
+    }, 5000); 
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -37,24 +41,34 @@ const Register = () => {
       return;
     }
 
+    // 💡 Adicionando a validação do aceite dos termos (presente no seu HTML)
+    const aceitouTermos = (document.getElementById('aceite-contrato') as HTMLInputElement)?.checked;
+    if (!aceitouTermos) {
+        showToast('Você deve aceitar os termos para se cadastrar.', 'error');
+        return;
+    }
+
     setIsLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:5000/api/users/register', {
+      // 🚨 NOVO CÓDIGO: Chama o serviço (Porta 5001)
+      const successMessage = await registerUser({
         nome: formData.nome,
         email: formData.email,
         senha: formData.senha,
       });
 
-      showToast(response.data.message, 'success');
+      showToast(successMessage, 'success'); // Mensagem do servidor
       setFormData({ nome: '', email: '', senha: '', confirmarSenha: '' });
 
       setTimeout(() => {
         router.push('/login');
       }, 2000);
+      
     } catch (err: any) {
-      const errorMessage = err.response?.data?.error || 'Erro ao conectar com o servidor.';
-      showToast(errorMessage, 'error');
+      // Pega o erro lançado pelo authService
+      console.error("Erro de Integração:", err);
+      showToast(err.message, 'error'); 
     } finally {
       setIsLoading(false);
     }
@@ -69,7 +83,7 @@ const Register = () => {
       {/* Faixa superior azul */}
       <div className="w-full h-[20vh] bg-sky-900" />
 
-      {/* Toast de mensagem, posicionado no topo da tela */}
+      {/* Toast de mensagem */}
       {toastMessage && (
         <div
           className={`fixed top-4 left-1/2 -translate-x-1/2 p-4 rounded-md shadow-lg transition-all duration-300 z-50 ${
