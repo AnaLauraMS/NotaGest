@@ -54,7 +54,7 @@ const Login: React.FC = () => {
 
       // 3. Redireciona para o Dashboard
       setTimeout(() => {
-        router.push('/dashboard');
+        router.push('/uploads');
       }, 500); // Reduzido para um redirecionamento mais rápido
       
     } catch (err: any) {
