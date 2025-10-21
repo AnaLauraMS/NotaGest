@@ -47,9 +47,9 @@ const Login: React.FC = () => {
       localStorage.setItem('authToken', token);
       
       // 2. Decodifica o token para extrair o ID do usuário (userId)
-      const { id } = decodeJwt(token);
+      const { id, email } = decodeJwt(token);
       localStorage.setItem('userId', id); 
-      
+      localStorage.setItem('userEmail', email);
       showToast(message, 'success');
 
       // 3. Redireciona para o Dashboard

@@ -4,6 +4,8 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const connectDB = require('./config/mongoDb');
 const userRoutes = require('./routes/userRoutes');
+const arquivoRoutes = require('./routes/arquivosRoutes');
+const imovelRoutes = require('./routes/imovelRoutes');
 
 // 1. CARREGA AS VARIÁVEIS DE AMBIENTE (ISSO DEVE VIR PRIMEIRO)
 dotenv.config();
@@ -23,7 +25,8 @@ app.use(express.json());
 // define a rota base para as funcionalidades de usuário
 // ATENÇÃO: A URL de teste agora é: /api/users/<ID>
 app.use('/api/users', userRoutes);
-
+app.use('/api/uploads', arquivoRoutes);
+app.use('/api/imoveis', imovelRoutes)
 // define a porta do servidor, usando a variável de ambiente ou 5000 como padrão
 const PORT = process.env.PORT || 5000;
 

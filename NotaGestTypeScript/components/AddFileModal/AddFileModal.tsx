@@ -1,11 +1,15 @@
 "use client";
 import { IoMdCloudUpload } from "react-icons/io";
-import React, { useState } from "react";
-import { useEffect } from "react";
+import React, { useState, useEffect } from "react";
 
-interface FileData {
-  id: number;
-  name: string;
+// 🎯 AJUSTE 1: Esta interface agora representa o "pacote de dados"
+// que será enviado para a API. Apenas os campos que o backend espera.
+type Property = {
+  _id: string;
+  nome: string;
+};
+
+interface NewFilePayload {
   title: string;
   value: number;
   purchaseDate: string;
@@ -13,43 +17,32 @@ interface FileData {
   category: string;
   subcategory: string;
   property: string;
-  date: string;
-  size: string;
 }
 
 interface AddFileModalProps {
-  onAddFile: (file: FileData) => void;
+  onAddFile: (fileData: NewFilePayload) => void;
   onClose: () => void;
+  properties: Property[];
 }
 
-const AddFileModal: React.FC<AddFileModalProps> = ({ onAddFile, onClose }) => {
-  const [file, setFile] = useState<File | null>(null);
+interface AddPropertyModalProps {
+  onClose: () => void;
+  onAddProperty: (propertyData: { nome: string }) => void;
+}
+
+const AddFileModal: React.FC<AddFileModalProps> = ({ onAddFile, onClose, properties }) => {
+
   const [title, setTitle] = useState("");
-  const [value, setValue] = useState("");
+  const [value, setValue] = useState<number | "">("");
   const [purchaseDate, setPurchaseDate] = useState("");
-  const [observation, setobservation] = useState("");
+  const [observation, setObservation] = useState("");
   const [category, setCategory] = useState("Construção");
   const [subcategory, setSubcategory] = useState("Iluminação");
   const [property, setProperty] = useState("");
 
-  const subcategories = [
-    "Iluminação",
-    "Ferragem",
-    "Hidráulica",
-    "Acabamento",
-    "Pintura",
-    "Madeiramento",
-    "Outros",
-  ];
+  // O resto das suas definições (subcategories, exampleProperties) está perfeito...
+  const subcategories = ["Iluminação", "Ferragem", "Hidráulica", "Acabamento", "Pintura", "Madeiramento", "Outros"];
 
-  // Simulando imóveis cadastrados (no futuro virá do banco de dados)
-  const exampleProperties = [
-    "Casa Jardim América",
-    "Obra Centro",
-    "Sítio São João",
-  ];
-
-  //useEffect para retirar o scroll da lateral no scroll
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => {
@@ -57,28 +50,31 @@ const AddFileModal: React.FC<AddFileModalProps> = ({ onAddFile, onClose }) => {
     };
   }, []);
 
-  const handleSubmit = () => {
-    if (!file || !property) {
-      alert("Selecione um arquivo e um imóvel");
+  // 🎯 AJUSTE 2: Usando o evento do formulário
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault(); // Impede o recarregamento da página
+
+    if (!title || !value || !property || !purchaseDate) {
+      alert("Por favor, preencha os campos obrigatórios: Título, Valor, Data e Imóvel.");
       return;
     }
 
-    const newFile = {
-      id: Date.now(),
-      name: file.name,
+    // 🎯 AJUSTE 3: Criamos o objeto payload APENAS com os dados que o backend precisa.
+    const newFilePayload: NewFilePayload = {
       title,
-      value: parseFloat(value),
+      value: Number(value), // Garantimos que o valor é um número
       purchaseDate,
       observation,
       category,
       subcategory,
       property,
-      date: new Date().toLocaleDateString(),
-      size: `${(file.size / 1024).toFixed(2)} KB`,
     };
 
-    onAddFile(newFile);
-    onClose();
+    // Chamamos a função da página principal, enviando o pacote de dados correto
+    onAddFile(newFilePayload);
+
+    // A página principal (UploadsPage) será responsável por fechar o modal após o sucesso da API
+    // onClose(); // Comentamos aqui
   };
 
   return (
@@ -88,9 +84,8 @@ const AddFileModal: React.FC<AddFileModalProps> = ({ onAddFile, onClose }) => {
           Adicionar Nota Fiscal
         </h2>
 
-        <div className="space-y-3 text-sm">
-          {/* Input arquivo */}
-
+        {/* 🎯 AJUSTE 4: Envolvemos tudo em uma tag <form> */}
+        <form onSubmit={handleSubmit} className="space-y-3 text-sm">
           {/* Título */}
           <input
             type="text"
@@ -98,6 +93,7 @@ const AddFileModal: React.FC<AddFileModalProps> = ({ onAddFile, onClose }) => {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             className="w-full border rounded px-3 py-2"
+            required
           />
           <div className="flex flex-col sm:flex-row gap-3">
             {/* Valor */}
@@ -105,10 +101,10 @@ const AddFileModal: React.FC<AddFileModalProps> = ({ onAddFile, onClose }) => {
               type="number"
               placeholder="Valor da Nota (R$)"
               value={value}
-              onChange={(e) => setValue(e.target.value)}
+              onChange={(e) => setValue(e.target.value === '' ? '' : parseFloat(e.target.value))}
               className="w-full border rounded px-3 py-2"
+              required
             />
-
             {/* Data da compra */}
             <input
               type="date"
@@ -116,17 +112,17 @@ const AddFileModal: React.FC<AddFileModalProps> = ({ onAddFile, onClose }) => {
               value={purchaseDate}
               onChange={(e) => setPurchaseDate(e.target.value)}
               className="w-full border rounded px-3 py-2"
+              required
             />
           </div>
-
           {/* Descrição */}
           <textarea
             placeholder="Descrição"
             value={observation}
-            onChange={(e) => setobservation(e.target.value)}
+            onChange={(e) => setObservation(e.target.value)}
             className="w-full border rounded px-3 py-2"
           />
-
+          {/* ... Seus outros inputs e selects estão perfeitos ... */}
           {/* Imóvel */}
           <div>
             <label className="block mb-1 text-sm font-medium text-gray-700">
@@ -136,11 +132,12 @@ const AddFileModal: React.FC<AddFileModalProps> = ({ onAddFile, onClose }) => {
               value={property}
               onChange={(e) => setProperty(e.target.value)}
               className="w-full border rounded px-3 py-2"
+              required
             >
               <option value="">Selecione um imóvel</option>
-              {exampleProperties.map((item) => (
-                <option key={item} value={item}>
-                  {item}
+              {properties.map((item) => (
+                <option key={item._id} value={item.nome}>
+                  {item.nome}
                 </option>
               ))}
             </select>
@@ -161,7 +158,6 @@ const AddFileModal: React.FC<AddFileModalProps> = ({ onAddFile, onClose }) => {
                 <option value="Reforma">Reforma</option>
               </select>
             </div>
-
             <div className="flex-1">
               <label className="block mb-1 text-sm font-medium text-gray-700">
                 Subcategoria
@@ -177,40 +173,23 @@ const AddFileModal: React.FC<AddFileModalProps> = ({ onAddFile, onClose }) => {
               </select>
             </div>
           </div>
-        </div>
 
-        {/* Input de arquivo com ícone de upload e background */}
-        <div className="flex flex-col gap-2 items-center text-center">
-          <label className="cursor-pointer inline-flex items-center justify-center bg-sky-600 hover:bg-sky-700 text-white px-4 py-4 rounded-md w-full gap-2 mt-6">
-            <IoMdCloudUpload />
-            Escolher arquivo
-            <input
-              type="file"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
-              className="hidden"
-            />
-          </label>
-
-          <span className="text-sm text-gray-500">
-            {file ? file.name : "Nenhum arquivo selecionado"}
-          </span>
-        </div>
-
-        {/* Botões */}
-        <div className="mt-6 flex flex-col sm:flex-row justify-end gap-3">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 border border-gray-400 rounded hover:bg-gray-100 w-full sm:w-auto"
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={handleSubmit}
-            className="px-4 py-2 bg-sky-700 text-white rounded hover:bg-sky-800 w-full sm:w-auto"
-          >
-            Salvar Nota Fiscal
-          </button>
-        </div>
+          <div className="mt-6 flex flex-col sm:flex-row justify-end gap-3">
+            <button
+              type="button" // Importante para não submeter o formulário
+              onClick={onClose}
+              className="px-4 py-2 border border-gray-400 rounded hover:bg-gray-100 w-full sm:w-auto"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit" // O botão principal agora é do tipo "submit"
+              className="px-4 py-2 bg-sky-700 text-white rounded hover:bg-sky-800 w-full sm:w-auto"
+            >
+              Salvar Nota Fiscal
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

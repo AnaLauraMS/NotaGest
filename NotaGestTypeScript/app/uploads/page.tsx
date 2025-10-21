@@ -8,57 +8,177 @@ import Logo from '/assets/Logo.png';
 import ArquivoNaoEncontrado from '/assets/arquivo_nao_encontrado.jpg';
 import AddFileModal from '../../components/AddFileModal/AddFileModal';
 import AddPropertyModal from '../../components/AddPropertyModal/AddPropertyModal';
+import { NewPropertyPayload } from '../../components/AddPropertyModal/AddPropertyModal';
+import PropertyManagerModal from '../../components/PropertyManagerModal/PropertyManagerModal';
 import { IoTrashBinSharp } from "react-icons/io5";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import axios from 'axios';
+import api from '../../utils/api';
 
+type Property = {
+    _id: string;
+    nome: string;
+    user: string;
+};
+
+type NewFilePayload = {
+    title: string;
+    value: number;
+    purchaseDate: string;
+    property: string;
+    category: string;
+    subcategory: string;
+    observation?: string;
+};
+
+// (Opcional, mas recomendado) Crie um tipo para o arquivo que vem da API
+type Arquivo = {
+    _id: string;
+    title: string;
+    value: number;
+    purchaseDate: string;
+    property: string;
+    category: string;
+    subcategory: string;
+    observation?: string;
+};
 
 const UploadsPage = () => {
-    const [files, setFiles] = useState<any[]>([]);
+    const [files, setFiles] = useState<Arquivo[]>([]);
+    const [properties, setProperties] = useState<Property[]>([]);
     const [isModalOpen, setModalOpen] = useState(false);
-    const [isPropertyModalOpen, setPropertyModalOpen] = useState(false); // Modal de adicionar imóvel
+    const [isPropertyModalOpen, setPropertyModalOpen] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [filesPerPage] = useState(15);
     const menuRef = useRef(null);
     const router = useRouter();
-
-    const user = {
-        name: "Nome do Usuário",
-        profileImage: "/path/to/default/profile/image.jpg"
-    };
+    const [isPropertyMenuOpen, setIsPropertyMenuOpen] = useState(false);
+    const [userEmail, setUserEmail] = useState<string | null>(null);
 
     useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (menuRef.current && !(menuRef.current as HTMLElement).contains(event.target as Node)) {
-                setShowMenu(false);
+        const storedEmail = localStorage.getItem('userEmail');
+        if (storedEmail) { // Só atualiza se encontrar algo
+            setUserEmail(storedEmail);
+        }
+        const fetchData = async () => {
+            try {
+                const filesPromise = api.get('/uploads');
+                const propertiesPromise = api.get('/imoveis');
+                const [filesResponse, propertiesResponse] = await Promise.all([
+                    filesPromise,
+                    propertiesPromise
+                ]);
+                setFiles(filesResponse.data);
+                setProperties(propertiesResponse.data);
+            } catch (error) {
+                console.error("Falha ao buscar dados:", error);
+                if (axios.isAxiosError(error)) {
+                    alert(`Erro: ${error.response?.data?.message || 'Falha ao carregar dados.'}`);
+                    // Considerar deslogar se o erro for 401 aqui também
+                    if (error.response?.status === 401) {
+                        handleLogoff(); // Chama a função de logoff se a busca falhar por autenticação
+                    }
+                }
             }
         };
+        fetchData();
+    }, []);
 
-        if (showMenu) {
-            document.addEventListener('mousedown', handleClickOutside);
+    const addFile = async (fileData: NewFilePayload) => {
+        try {
+            const response = await api.post('/uploads', fileData);
+            setFiles([response.data, ...files]);
+            setModalOpen(false);
+        } catch (error) {
+            console.error("Erro ao adicionar arquivo:", error);
+            if (axios.isAxiosError(error)) {
+                alert(`Erro: ${error.response?.data?.message || 'Não foi possível adicionar o arquivo.'}`);
+            } else {
+                alert('Ocorreu um erro inesperado.');
+            }
         }
-
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [showMenu]);
-
-    const addFile = (fileData: { title: string; observation: string }) => {
-        const newFileData = {
-            ...fileData,
-            date: new Date().toLocaleString(),
-        };
-        setFiles([...files, newFileData]);
-        setModalOpen(false);
     };
 
-    const deleteFile = (index: number) => {
-        const newFiles = files.filter((_, i) => i !== index);
-        setFiles(newFiles);
+    const deleteFile = async (fileId: string) => {
+        try {
+            // Asks for confirmation before deleting
+            if (!window.confirm("Tem certeza que deseja excluir este arquivo?")) {
+                return; // Stop if the user clicks "Cancel"
+            }
+
+            await api.delete(`/uploads/${fileId}`);
+
+            // Remove the file from the state to update the UI instantly
+            setFiles(files.filter(file => file._id !== fileId));
+        } catch (error) {
+            console.error("Erro ao deletar arquivo:", error);
+            if (axios.isAxiosError(error)) {
+                alert(`Erro: ${error.response?.data?.message || 'Não foi possível deletar o arquivo.'}`);
+            } else {
+                alert('Ocorreu um erro inesperado.');
+            }
+        }
+    };
+
+    // Dentro do componente UploadsPage
+
+    const handleAddProperty = async (propertyData: NewPropertyPayload) => { // Aceita o objeto completo
+        console.log("➡️ Dados do imóvel a serem enviados:", propertyData);
+        try {
+            const response = await api.post('/imoveis', propertyData);
+            const newProperty = response.data;
+
+            // Atualiza o estado local (garanta que o tipo 'Property' aqui inclua todos os campos, se necessário)
+            setProperties(prevProperties => [newProperty, ...prevProperties]);
+
+            setPropertyModalOpen(false); // Fecha o modal no sucesso
+            alert('Imóvel adicionado com sucesso!');
+
+        } catch (error) {
+            console.error("Erro ao adicionar imóvel:", error);
+            if (axios.isAxiosError(error) && error.response) {
+                const backendMessage = error.response.data.message || 'Erro desconhecido do backend.';
+                const errorDetails = error.response.data.errorDetails;
+                alert(`Erro ${error.response.status}: ${backendMessage}\n${errorDetails ? `Detalhes: ${errorDetails}` : ''}`);
+            } else {
+                alert('Ocorreu um erro inesperado ao conectar com o servidor.');
+            }
+        }
+    };
+
+    const handleDeleteProperty = async (propertyId: string) => {
+        try {
+            if (!window.confirm("Tem certeza que deseja excluir este imóvel? Todos os arquivos associados a ele precisarão ser reassociados.")) {
+                return;
+            }
+
+            // Chama a API de delete do backend
+            await api.delete(`/imoveis/${propertyId}`);
+
+            // Remove o imóvel do estado local
+            setProperties(prevProperties => prevProperties.filter(p => p._id !== propertyId));
+
+            alert('Imóvel excluído com sucesso!');
+
+            // (Opcional: Você pode querer fechar o modal ou não após a exclusão)
+            // setIsPropertyMenuOpen(false); 
+
+        } catch (error) {
+            console.error("Erro ao deletar imóvel:", error);
+            if (axios.isAxiosError(error) && error.response) {
+                alert(`Erro: ${error.response.data.message || 'Não foi possível excluir o imóvel.'}`);
+            } else {
+                alert('Ocorreu um erro inesperado.');
+            }
+        }
     };
 
     const handleLogoff = () => {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userId');
+        localStorage.removeItem('userEmail');
         console.log("Usuário deslogado");
         router.push('/');
     };
@@ -135,7 +255,7 @@ const UploadsPage = () => {
                 <div className="relative" ref={menuRef}>
                     <button onClick={() => setShowMenu(!showMenu)} className="flex items-center">
                         <MdAccountCircle className="text-white text-3xl" />
-                        <span className="text-white ml-2">{user.name}</span>
+                        <span className="text-white ml-2">{userEmail}</span>
                     </button>
                     {showMenu && (
                         <div className="absolute right-0 mt-2 w-48 bg-white border rounded shadow-lg z-10">
@@ -174,6 +294,14 @@ const UploadsPage = () => {
                         >
                             Gerar Relatório
                         </button>
+
+                        <button
+                            onClick={() => setIsPropertyMenuOpen(true)}
+                            className="text-left py-2 border-b border-gray-400 text-white hover:font-semibold transition"
+                        >
+                            Gerenciar Imóveis
+                        </button>
+
                         <button
                             onClick={() =>
                                 window.open(
@@ -198,18 +326,23 @@ const UploadsPage = () => {
                             <AddFileModal
                                 onAddFile={addFile}
                                 onClose={() => setModalOpen(false)}
+                                properties={properties}
                             />
                         )}
                         {isPropertyModalOpen && (
                             <AddPropertyModal
-                                onClose={() => setPropertyModalOpen(false)} // Fechar o modal de adicionar imóvel
-                                onAddProperty={() => {
-                                    // Ação de adicionar imóvel pode ser vazia se não for necessária
-                                    console.log("Imóvel adicionado!");
-                                }}
+                                onClose={() => setPropertyModalOpen(false)}
+                                onAddProperty={handleAddProperty}
                             />
                         )}
 
+                        {isPropertyMenuOpen && (
+                            <PropertyManagerModal
+                                properties={properties}
+                                onClose={() => setIsPropertyMenuOpen(false)}
+                                onDeleteProperty={handleDeleteProperty}
+                            />
+                        )}
 
                         {/* Conteúdo */}
                         {files.length === 0 ? (
@@ -242,7 +375,7 @@ const UploadsPage = () => {
                                     </thead>
                                     <tbody>
                                         {currentFiles.map((file, index) => (
-                                            <tr key={index} className="hover:bg-gray-100">
+                                            <tr key={file._id} className="hover:bg-gray-100">
                                                 <td className="border-b p-2">{file.title}</td>
                                                 <td className="border-b p-2">R$ {file.value?.toFixed(2)}</td>
                                                 <td className="border-b p-2">{file.purchaseDate}</td>
@@ -251,7 +384,7 @@ const UploadsPage = () => {
                                                 <td className="border-b p-2">{file.subcategory}</td>
                                                 <td className="border-b p-2">
                                                     <button
-                                                        onClick={() => deleteFile(index)}
+                                                        onClick={() => deleteFile(file._id)} // Passar o file._id
                                                         className="text-red-600 hover:text-red-800 ml-3"
                                                     >
                                                         <IoTrashBinSharp size={20} />

@@ -1,18 +1,36 @@
-// middleware/auth.js
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
 const protect = (req, res, next) => {
-  const token = req.header('Authorization')?.split(' ')[1];
-  if (!token) return res.status(401).json({ error: 'Token não fornecido.' });
+    console.log('\n--- 🛡️  Middleware "protect" foi acionado! ---'); // Log de entrada
+    let token;
 
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.userId = decoded.id; // Corrigido: adiciona o ID no req
-    next();
-  } catch (err) {
-    res.status(403).json({ error: 'Token inválido.' });
-  }
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+        try {
+            token = req.headers.authorization.split(' ')[1];
+            
+            if (!token || token === 'null') {
+                 console.error('Token é nulo ou "null".');
+                 return res.status(401).json({ message: 'Não autorizado, token nulo' });
+            }
+
+            console.log('Token recebido:', token.substring(0, 10) + '...');
+
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            
+            console.log('Token decodificado com sucesso:', decoded);
+            
+            req.user = { id: decoded.id, email: decoded.email }; 
+            
+            next();
+        } catch (error) {
+            console.error('FALHA NA VERIFICAÇÃO DO TOKEN:', error.message);
+            res.status(401).json({ message: `Token inválido: ${error.message}` });
+        }
+    } else {
+        console.error('Não autorizado, cabeçalho de autorização não fornecido ou mal formatado.');
+        res.status(401).json({ message: 'Não autorizado, token não fornecido.' });
+    }
 };
 
 module.exports = { protect };
