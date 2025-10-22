@@ -42,6 +42,7 @@ type Arquivo = {
     category: string;
     subcategory: string;
     observation?: string;
+    filePath?: string;
 };
 
 const UploadsPage = () => {
@@ -64,8 +65,8 @@ const UploadsPage = () => {
         }
         const fetchData = async () => {
             try {
-                const filesPromise = api.get('/uploads');
-                const propertiesPromise = api.get('/imoveis');
+                const filesPromise = api.get('/api/uploads');
+                const propertiesPromise = api.get('/api/imoveis');
                 const [filesResponse, propertiesResponse] = await Promise.all([
                     filesPromise,
                     propertiesPromise
@@ -86,17 +87,106 @@ const UploadsPage = () => {
         fetchData();
     }, []);
 
-    const addFile = async (fileData: NewFilePayload) => {
+    const addFile = async (fileData: NewFilePayload, file: File | null) => {
+        let uploadedFilePath: string | undefined = undefined; // Guarda o caminho se o upload for feito
+
+        // 1. FAZ O UPLOAD DO ARQUIVO (SE EXISTIR)
+        if (file) {
+            console.log("Tentando fazer upload do arquivo:", file.name);
+            const formData = new FormData();
+            formData.append('file', file); // 'file' deve ser o mesmo nome esperado pelo multer
+            console.log("✅ Upload OK. Caminho retornado:", uploadedFilePath);
+            try {
+                // Chama a rota de upload do backend
+                const uploadResponse = await api.post('/api/uploadfile', formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data', // Axios detecta FormData, mas é bom ser explícito
+                    },
+                });
+                uploadedFilePath = uploadResponse.data.filePath; // Pega o caminho retornado
+                console.log("Arquivo enviado, caminho:", uploadedFilePath);
+            } catch (uploadError) {
+                console.error("Erro no UPLOAD do arquivo:", uploadError);
+                if (axios.isAxiosError(uploadError) && uploadError.response) {
+                    alert(`Erro ao enviar arquivo: ${uploadError.response.data.message || 'Falha no upload.'}`);
+                } else {
+                    alert('Erro inesperado ao enviar arquivo.');
+                }
+                return; // Interrompe se o upload falhar
+            }
+        }
+
+        // 2. SALVA OS METADADOS (INCLUINDO O CAMINHO, SE HOUVER)
         try {
-            const response = await api.post('/uploads', fileData);
-            setFiles([response.data, ...files]);
-            setModalOpen(false);
-        } catch (error) {
-            console.error("Erro ao adicionar arquivo:", error);
-            if (axios.isAxiosError(error)) {
-                alert(`Erro: ${error.response?.data?.message || 'Não foi possível adicionar o arquivo.'}`);
+            console.log("Salvando metadados:", { ...fileData, filePath: uploadedFilePath });
+            // Adiciona o caminho aos dados e chama a rota de criação de arquivo
+            const response = await api.post('/api/uploads', {
+                ...fileData,
+                filePath: uploadedFilePath // Inclui o caminho (ou undefined se não houve upload)
+            });
+
+            setFiles(prevFiles => [response.data, ...prevFiles]); // Atualiza o estado
+            setModalOpen(false); // Fecha o modal
+            alert('Nota fiscal adicionada com sucesso!');
+
+        } catch (metadataError) {
+            console.error("Erro ao salvar METADADOS:", metadataError);
+            if (axios.isAxiosError(metadataError) && metadataError.response) {
+                alert(`Erro ao salvar dados: ${metadataError.response.data.message || 'Falha ao salvar.'}`);
             } else {
-                alert('Ocorreu um erro inesperado.');
+                alert('Erro inesperado ao salvar dados.');
+            }
+            // OBS: Se o upload deu certo mas os metadados falharam, o arquivo fica "órfão" no servidor.
+            // Uma lógica mais robusta poderia tentar deletar o arquivo órfão.
+        }
+    };
+
+    const handleViewFile = async (filePath: string | undefined) => {
+        if (!filePath) { alert("Este registro não possui arquivo anexado."); return; }
+
+        // A URL relativa que o backend serve (sem /api) para arquivos estáticos
+        const fileServerUrl = `/uploads/${filePath}`;
+        console.log("Buscando arquivo via API:", fileServerUrl); // Log útil (ver no console se F12 funcionar)
+
+        try {
+            // Usa o Axios (que adiciona baseURL e token) para buscar o arquivo como Blob
+            const response = await api.get(fileServerUrl, {
+                responseType: 'blob', // Essencial para tratar a resposta como binária
+            });
+
+            // Cria URL temporária para o Blob recebido
+            // Pega o 'content-type' do header da resposta para o Blob
+            const fileBlob = new Blob([response.data], { type: response.headers['content-type'] });
+            const blobUrl = URL.createObjectURL(fileBlob);
+
+            // Abre a URL temporária em uma nova aba
+            console.log("Abrindo Blob URL:", blobUrl); // Log útil
+            window.open(blobUrl, '_blank');
+
+            // Libera a memória revogando a URL temporária (boa prática)
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+
+        } catch (error) {
+            console.error("Erro ao visualizar/baixar arquivo:", error); // Log útil
+            // Tratamento de erro específico para Axios e respostas Blob
+            if (axios.isAxiosError(error) && error.response) {
+                try {
+                    // Tenta ler a resposta de erro como texto, mesmo sendo Blob
+                    const errorBlob = error.response.data as Blob;
+                    const errorText = await errorBlob.text();
+                    try {
+                        // Tenta parsear o texto como JSON (ex: { message: "Não autorizado" })
+                        const errorJson = JSON.parse(errorText);
+                        alert(`Erro ${error.response.status}: ${errorJson.message || 'Não foi possível buscar o arquivo.'}`);
+                    } catch (jsonError) {
+                        // Se não for JSON (ex: HTML de erro do servidor ou texto simples)
+                        alert(`Erro ${error.response.status}: ${errorText.substring(0, 100) || 'Não foi possível buscar o arquivo.'}`);
+                    }
+                } catch (readError) {
+                    alert(`Erro ${error.response.status}: Não foi possível processar a resposta de erro do servidor.`);
+                }
+            } else {
+                alert('Ocorreu um erro inesperado ao buscar o arquivo.');
             }
         }
     };
@@ -108,7 +198,7 @@ const UploadsPage = () => {
                 return; // Stop if the user clicks "Cancel"
             }
 
-            await api.delete(`/uploads/${fileId}`);
+            await api.delete(`/api/uploads/${fileId}`);
 
             // Remove the file from the state to update the UI instantly
             setFiles(files.filter(file => file._id !== fileId));
@@ -122,12 +212,12 @@ const UploadsPage = () => {
         }
     };
 
-    // Dentro do componente UploadsPage
+
 
     const handleAddProperty = async (propertyData: NewPropertyPayload) => { // Aceita o objeto completo
         console.log("➡️ Dados do imóvel a serem enviados:", propertyData);
         try {
-            const response = await api.post('/imoveis', propertyData);
+            const response = await api.post('/api/imoveis', propertyData);
             const newProperty = response.data;
 
             // Atualiza o estado local (garanta que o tipo 'Property' aqui inclua todos os campos, se necessário)
@@ -155,7 +245,7 @@ const UploadsPage = () => {
             }
 
             // Chama a API de delete do backend
-            await api.delete(`/imoveis/${propertyId}`);
+            await api.delete(`/api/imoveis/${propertyId}`);
 
             // Remove o imóvel do estado local
             setProperties(prevProperties => prevProperties.filter(p => p._id !== propertyId));
@@ -344,7 +434,6 @@ const UploadsPage = () => {
                             />
                         )}
 
-                        {/* Conteúdo */}
                         {files.length === 0 ? (
                             <div className="flex flex-col items-center justify-center h-[60vh] text-center bg-white p-6">
                                 <Image
@@ -383,9 +472,19 @@ const UploadsPage = () => {
                                                 <td className="border-b p-2">{file.category}</td>
                                                 <td className="border-b p-2">{file.subcategory}</td>
                                                 <td className="border-b p-2">
+                                                    {file.filePath && (
+                                                        <button
+                                                            onClick={() => handleViewFile(file.filePath)}
+                                                            className="text-blue-600 hover:text-blue-800 mr-2"
+                                                            title="Visualizar Arquivo"
+                                                        >
+                                                            👁️
+                                                        </button>
+                                                    )}
                                                     <button
-                                                        onClick={() => deleteFile(file._id)} // Passar o file._id
-                                                        className="text-red-600 hover:text-red-800 ml-3"
+                                                        onClick={() => deleteFile(file._id)}
+                                                        className="text-red-600 hover:text-red-800"
+                                                        title="Excluir Registro"
                                                     >
                                                         <IoTrashBinSharp size={20} />
                                                     </button>
@@ -394,8 +493,6 @@ const UploadsPage = () => {
                                         ))}
                                     </tbody>
                                 </table>
-
-                                {/* Paginação */}
                                 <div className="flex justify-center mt-4">
                                     <button
                                         onClick={() => paginate(currentPage - 1)}

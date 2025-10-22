@@ -6,7 +6,7 @@ const User = require('../models/userModel'); // Pode ser útil
 // @route   GET /api/arquivos
 // @access  Private
 exports.getArquivos = async (req, res) => {
-    console.log("✅ Rota GET /api/uploads foi acionada!"); // Log para ver se a rota é alcançada
+    console.log("Rota GET /api/uploads foi acionada!"); // Log para ver se a rota é alcançada
     console.log("Usuário autenticado:", req.user); // Verifique se o ID do usuário está aqui
 
     try {
@@ -16,7 +16,7 @@ exports.getArquivos = async (req, res) => {
         
         res.status(200).json(arquivos);
     } catch (error) {
-        console.error("❌ ERRO NO CONTROLLER getArquivos:", error); // Log detalhado do erro
+        console.error("ERRO NO CONTROLLER getArquivos:", error); // Log detalhado do erro
         res.status(500).json({ message: 'Erro interno no servidor ao buscar arquivos', error: error.message });
     }
 };
@@ -25,23 +25,27 @@ exports.getArquivos = async (req, res) => {
 // @route   POST /api/arquivos
 // @access  Private
 exports.createArquivo = async (req, res) => {
+    console.log('🏁 Entrou createArquivo com dados:', req.body);
     try {
-        const { title, value, purchaseDate, property, category, subcategory, observation } = req.body;
+        // Pega o filePath junto com os outros dados
+        const { title, value, purchaseDate, property, category, subcategory, observation, filePath } = req.body; 
+
+        // Validação (mantenha ou adicione conforme necessário)
+        if (!title || !value || !purchaseDate || !property || !category || !subcategory) {
+             return res.status(400).json({ message: 'Campos obrigatórios faltando.'});
+        }
 
         const novoArquivo = await Arquivo.create({
-            title,
-            value,
-            purchaseDate,
-            property,
-            category,
-            subcategory,
-            observation,
-            user: req.user.id // Associando o arquivo ao usuário logado
+            title, value, purchaseDate, property, category, subcategory, observation, 
+            filePath, // 👈 Salva o caminho do arquivo
+            user: req.user.id 
         });
 
+        console.log('✅ Arquivo (metadados) criado:', novoArquivo);
         res.status(201).json(novoArquivo);
     } catch (error) {
-        res.status(400).json({ message: 'Dados inválidos', error: error.message });
+        // ... (seu log de erro detalhado) ...
+         res.status(400).json({ message: 'Dados inválidos ao criar arquivo.', errorDetails: error.message });
     }
 };
 
