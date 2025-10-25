@@ -3,9 +3,20 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {useEffect } from 'react';
 
+export interface NewPropertyPayload {
+    nome: string;
+    cep: string;
+    rua: string;
+    numero: string;
+    bairro: string;
+    cidade: string;
+    estado: string;
+    tipo: string;
+}
+
 interface AddPropertyModalProps {
     onClose: () => void;
-    onAddProperty: (property: string) => void;
+    onAddProperty: (propertyData: NewPropertyPayload) => void; 
 }
 
 const AddPropertyModal = ({ onClose, onAddProperty }: AddPropertyModalProps) => {
@@ -50,19 +61,26 @@ const AddPropertyModal = ({ onClose, onAddProperty }: AddPropertyModalProps) => 
         }
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        // Aqui futuramente tera a integração com o banco de dados
-        const fullAddress = `${street}, ${number} - ${neighborhood}, ${city} - ${state}, CEP: ${cep}`;
-        console.log({
-            name,
-            type,
-            address: fullAddress,
-        });
+        // Cria o objeto de dados
+        const propertyData: NewPropertyPayload = {
+            nome: name,
+            cep,
+            rua: street,
+            numero: number,
+            bairro: neighborhood,
+            cidade: city,
+            estado: state,
+            tipo: type
+        };
 
-        onAddProperty('Imóvel adicionado com sucesso');
-        onClose(); // Fecha o modal após a adição
+        // Envia o objeto de dados completo para a UploadsPage
+        onAddProperty(propertyData);
+        
+        // A UploadsPage será responsável por fechar o modal
+        // onClose(); 
     };
 
     //useEffect para retirar o scroll da lateral no scroll
