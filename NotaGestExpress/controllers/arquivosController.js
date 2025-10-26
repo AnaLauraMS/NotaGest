@@ -1,31 +1,43 @@
 // controllers/arquivoController.js
-const Arquivo = require('../models/arquivosModel'); // Importa o modelo de dados de arquivo
-const User = require('../models/userModel'); // Importa o modelo de usuário (para referência)
+const Arquivo = require('../models/arquivosModel');
+const User = require('../models/userModel'); 
 
 /**
  * @function getArquivos
- * @description Controller para buscar todos os arquivos associados ao usuário logado.
- * @route GET /api/arquivos
+ * @description Controller para buscar todos os arquivos associados ao usuário logado,
+ * com opção de filtragem por nome de imóvel via query parameter.
+ * @route GET /api/uploads?propertyId=<nome_do_imovel>
  * @access Private
  */
 exports.getArquivos = async (req, res) => {
-    // Log de rastreio de requisição
-    console.log("Rota GET /api/uploads foi acionada!"); 
-    // Log para depuração do estado de autenticação
-    console.log("Usuário autenticado:", req.user); 
+    // 1. Obtém o nome do imóvel para filtrar, enviado como query parameter (ex: ?propertyId=Teste)
+    const propertyName = req.query.propertyId; 
+    
+    // Log para verificar se o filtro chegou corretamente no backend
+    console.log(`Rota GET /api/uploads acionada. Filtro Imóvel: ${propertyName || 'Nenhum'}`);
+    console.log("Usuário autenticado ID:", req.user.id);
 
     try {
-        // Busca arquivos no banco de dados filtrando pelo ID do usuário (req.user.id) e ordenando pela data
-        const arquivos = await Arquivo.find({ user: req.user.id }).sort({ createdAt: -1 });
+        // 2. Constrói o objeto de consulta (query)
+        // Inicialmente, filtra apenas pelo ID do usuário
+        const query = { user: req.user.id };
+
+        // 3. Adiciona a condição de filtro se o propertyName for fornecido e não for uma string vazia
+        if (propertyName) {
+            // Adiciona a condição: campo 'property' no DB deve ser igual ao nome fornecido
+            query.property = propertyName;
+            console.log("Consulta MongoDB com filtro:", query);
+        }
+
+        // 4. Executa a busca no MongoDB com o objeto de consulta (filtrado ou não)
+        const arquivos = await Arquivo.find(query).sort({ createdAt: -1 });
         
         console.log(`Encontrados ${arquivos.length} arquivos para o usuário.`);
         
-        // Retorna a lista de arquivos com status 200 (OK)
+        // 5. Retorna os resultados
         res.status(200).json(arquivos);
     } catch (error) {
-        // Log detalhado do erro
         console.error("ERRO NO CONTROLLER getArquivos:", error); 
-        // Retorna 500 para erro interno do servidor
         res.status(500).json({ message: 'Erro interno no servidor ao buscar arquivos', error: error.message });
     }
 };
@@ -37,28 +49,26 @@ exports.getArquivos = async (req, res) => {
  * @access Private
  */
 exports.createArquivo = async (req, res) => {
-    console.log('🏁 Entrou createArquivo com dados:', req.body);
+    console.log('Entrou createArquivo com dados:', req.body);
     try {
-        // Desestrutura os campos do corpo da requisição (incluindo o caminho do arquivo)
+        // Pega o filePath junto com os outros dados
         const { title, value, purchaseDate, property, category, subcategory, observation, filePath } = req.body; 
 
-        // Validação básica: checa se os campos essenciais estão presentes
+        // Validação (mantenha ou adicione conforme necessário)
         if (!title || !value || !purchaseDate || !property || !category || !subcategory) {
-             return res.status(400).json({ message: 'Campos obrigatórios faltando.'});
+            return res.status(400).json({ message: 'Campos obrigatórios faltando.'});
         }
 
-        // Cria o novo documento no MongoDB com os dados e o ID do usuário logado
         const novoArquivo = await Arquivo.create({
             title, value, purchaseDate, property, category, subcategory, observation, 
-            filePath, // Salva o caminho de acesso ao arquivo (storage)
+            filePath, // Salva o caminho do arquivo
             user: req.user.id 
         });
 
         console.log('✅ Arquivo (metadados) criado:', novoArquivo);
-        // Retorna o novo arquivo criado com status 201 (Created)
         res.status(201).json(novoArquivo);
     } catch (error) {
-        // Captura e retorna erro de validação de dados ou DB
+        console.error("ERRO AO CRIAR ARQUIVO:", error);
         res.status(400).json({ message: 'Dados inválidos ao criar arquivo.', errorDetails: error.message });
     }
 };
@@ -71,26 +81,22 @@ exports.createArquivo = async (req, res) => {
  */
 exports.deleteArquivo = async (req, res) => {
     try {
-        // Busca o arquivo pelo ID fornecido nos parâmetros da URL
         const arquivo = await Arquivo.findById(req.params.id);
 
-        // Checa se o arquivo existe
         if (!arquivo) {
             return res.status(404).json({ message: 'Arquivo não encontrado' });
         }
 
-        // VERIFICAÇÃO DE SEGURANÇA: Garante que o usuário logado é o proprietário do arquivo
+        // VERIFICAÇÃO DE SEGURANÇA: Garante que o usuário só pode deletar seus próprios arquivos
         if (arquivo.user.toString() !== req.user.id) {
             return res.status(401).json({ message: 'Não autorizado' });
         }
 
-        // Remove o documento do banco de dados
         await arquivo.deleteOne(); 
 
-        // Retorna sucesso na remoção
         res.status(200).json({ id: req.params.id, message: 'Arquivo removido com sucesso' });
     } catch (error) {
-        // Trata erros de formato de ID ou servidor
+        console.error("ERRO AO DELETAR ARQUIVO:", error);
         res.status(500).json({ message: 'Erro no servidor' });
     }
 };
