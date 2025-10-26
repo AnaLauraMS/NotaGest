@@ -2,10 +2,8 @@
 
 import { useState, ChangeEvent, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-// Mantenha axios se for usado em outro lugar, mas usaremos a lógica do serviço
-import axios from 'axios'; 
-// 💡 IMPORTAÇÃO ESSENCIAL: O serviço que faz a chamada para 5001
-import { loginUser, decodeJwt } from '../../utils/authService'; 
+import axios from 'axios';
+import { loginUser, decodeJwt } from '../../utils/authService';
 
 type Credentials = {
   email: string;
@@ -33,7 +31,7 @@ const Login: React.FC = () => {
     setToastMessage({ msg, type });
     setTimeout(() => {
       setToastMessage(null);
-    }, 5000); 
+    }, 5000);
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -43,23 +41,17 @@ const Login: React.FC = () => {
     try {
       const { token, message } = await loginUser(credentials.email, credentials.senha);
 
-      // 1. Armazena o token de autenticação
       localStorage.setItem('authToken', token);
-      
-      // 2. Decodifica o token para extrair o ID do usuário (userId)
       const { id, email } = decodeJwt(token);
-      localStorage.setItem('userId', id); 
+      localStorage.setItem('userId', id);
       localStorage.setItem('userEmail', email);
       showToast(message, 'success');
 
-      // 3. Redireciona para o Dashboard
       setTimeout(() => {
         router.push('/uploads');
-      }, 500); // Reduzido para um redirecionamento mais rápido
-      
+      }, 500);
     } catch (err: any) {
       console.error("Erro de Login:", err);
-      // O erro agora vem do serviço (ex: 'Credenciais inválidas')
       const errorMessage = err.message || 'Erro ao conectar com o servidor.';
       showToast(errorMessage, 'error');
     } finally {
@@ -69,6 +61,10 @@ const Login: React.FC = () => {
 
   const handleGoHome = () => {
     router.push('/');
+  };
+
+  const handleGoRegister = () => {
+    router.push('/register');
   };
 
   return (
@@ -131,7 +127,7 @@ const Login: React.FC = () => {
             <div className="flex flex-col mt-6">
               <button
                 type="submit"
-                className="text-black bg-[#fde047] px-4 py-2 rounded transition duration-300 border-none mb-4 hover:bg-yellow-500 hover:scale-105 cursor-pointer disabled:bg-gray-400 disabled:cursor-not-allowed"
+                className="text-black bg-[#fde047] px-4 py-2 rounded transition duration-300 border-none mb-3 hover:bg-yellow-500 hover:scale-105 cursor-pointer disabled:bg-gray-400 disabled:cursor-not-allowed"
                 disabled={isLoading}
               >
                 {isLoading ? 'Entrando...' : 'Login'}
@@ -140,16 +136,25 @@ const Login: React.FC = () => {
               <button
                 type="button"
                 onClick={handleGoHome}
-                className="text-black px-4 py-2 rounded transition duration-300 border-none bg-gray-300 mb-2 hover:bg-gray-400 hover:scale-105 cursor-pointer"
+                className="text-black px-4 py-2 rounded transition duration-300 border-none bg-gray-300 mb-3 hover:bg-gray-400 hover:scale-105 cursor-pointer"
               >
                 Voltar para a Home
+              </button>
+
+              {/* Novo botão de cadastro */}
+              <button
+                type="button"
+                onClick={handleGoRegister}
+                className="text-white px-4 py-2 rounded transition duration-300 border-none bg-sky-700 hover:bg-sky-800 hover:scale-105 cursor-pointer"
+              >
+                Criar conta
               </button>
             </div>
           </form>
         </section>
       </main>
 
-      {/* Faixa azul no rodapé */}
+      {/* Faixa azul inferior */}
       <div className="w-full h-20 bg-sky-900 mt-10" />
     </div>
   );
