@@ -3,6 +3,97 @@ const Arquivo = require('../models/arquivosModel');
 const User = require('../models/userModel'); 
 
 /**
+ * @openapi
+ * tags:
+ *   - name: Arquivos
+ *     description: Uploads e gerenciamento de notas fiscais
+ */
+
+/**
+ * @openapi
+ * /api/uploads:
+ *   get:
+ *     tags: [Arquivos]
+ *     summary: Lista arquivos enviados pelo usuário
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: propertyId
+ *         in: query
+ *         description: Nome do imóvel para filtrar os arquivos
+ *         required: false
+ *         schema:
+ *           type: string
+ *           example: Casa Nova
+ *     responses:
+ *       200:
+ *         description: Retorna todos os arquivos do usuário autenticado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Arquivo'
+ *       401:
+ *         description: Token inválido ou ausente
+ */
+
+/**
+ * @openapi
+ * /api/uploads:
+ *   post:
+ *     tags: [Arquivos]
+ *     summary: Cadastra metadados de um novo arquivo (nota fiscal, documento, etc.)
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             example:
+ *               title: "Nota fiscal de tinta"
+ *               value: 250.90
+ *               purchaseDate: "2025-09-20"
+ *               property: "Casa Nova"
+ *               category: "Materiais"
+ *               subcategory: "Pintura"
+ *               observation: "Compra feita na loja ColorMais"
+ *               filePath: "/uploads/1718205958340-tinta.pdf"
+ *     responses:
+ *       201:
+ *         description: Arquivo salvo com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Arquivo'
+ */
+
+/**
+ * @openapi
+ * /api/uploads/{id}:
+ *   delete:
+ *     tags: [Arquivos]
+ *     summary: Deleta um arquivo específico
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: 671a9b5d39fbd101bf4d3cc7
+ *     responses:
+ *       200:
+ *         description: Arquivo removido com sucesso
+ *       404:
+ *         description: Arquivo não encontrado
+ */
+
+
+/**
  * @function getArquivos
  * @description Controller para buscar todos os arquivos associados ao usuário logado,
  * com opção de filtragem por nome de imóvel via query parameter.

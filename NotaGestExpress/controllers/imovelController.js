@@ -2,6 +2,61 @@
 const Imovel = require('../models/imovelModel'); // Importa o modelo de dados de Imóvel
 
 /**
+ * @openapi
+ * tags:
+ *   - name: Imóveis
+ *     description: Cadastro e gerenciamento de imóveis
+ */
+
+/**
+ * @openapi
+ * /api/imoveis:
+ *   get:
+ *     tags: [Imóveis]
+ *     summary: Lista todos os imóveis do usuário autenticado
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Retorna a lista de imóveis cadastrados
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Imovel'
+ */
+
+/**
+ * @openapi
+ * /api/imoveis:
+ *   post:
+ *     tags: [Imóveis]
+ *     summary: Cadastra um novo imóvel
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             example:
+ *               nome: "Casa Nova"
+ *               cep: "18040-300"
+ *               rua: "Rua das Palmeiras"
+ *               numero: "123"
+ *               bairro: "Centro"
+ *               cidade: "Sorocaba"
+ *               estado: "SP"
+ *               tipo: "Residencial"
+ *     responses:
+ *       201:
+ *         description: Imóvel criado com sucesso
+ *       400:
+ *         description: Dados inválidos
+ */
+
+/**
  * @function getImoveis
  * @description Controller para buscar todos os imóveis pertencentes ao usuário autenticado.
  * @route GET /api/imoveis

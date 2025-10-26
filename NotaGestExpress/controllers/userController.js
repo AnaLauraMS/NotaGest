@@ -1,5 +1,89 @@
 const userService = require('../services/userService'); // Importa a camada de serviço que lida com a lógica de negócio
 
+/**
+ * @openapi
+ * tags:
+ *   - name: Usuários
+ *     description: Cadastro, login e gerenciamento de usuários
+ */
+
+/**
+ * @openapi
+ * /api/users/register:
+ *   post:
+ *     tags: [Usuários]
+ *     summary: Registra um novo usuário
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             example:
+ *               name: "Ana Laura"
+ *               email: "ana@example.com"
+ *               password: "123456"
+ *     responses:
+ *       201:
+ *         description: Usuário criado com sucesso
+ *       400:
+ *         description: Usuário já existe
+ */
+
+/**
+ * @openapi
+ * /api/users/login:
+ *   post:
+ *     tags: [Usuários]
+ *     summary: Realiza login e retorna o token JWT
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             example:
+ *               email: "ana@example.com"
+ *               password: "123456"
+ *     responses:
+ *       200:
+ *         description: Login bem-sucedido
+ *         content:
+ *           application/json:
+ *             example:
+ *               _id: "671a9a2239fbd101bf4d3cc5"
+ *               name: "Ana Laura"
+ *               email: "ana@example.com"
+ *               token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ *       401:
+ *         description: Credenciais inválidas
+ */
+
+/**
+ * @openapi
+ * /api/users/{id}:
+ *   get:
+ *     tags: [Usuários]
+ *     summary: Retorna dados do usuário autenticado
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         example: 671a9a2239fbd101bf4d3cc5
+ *     responses:
+ *       200:
+ *         description: Dados do usuário
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       403:
+ *         description: Acesso negado
+ *       404:
+ *         description: Usuário não encontrado
+ */
+
+
 // --- A. READ (GET /users/:id) ---
 /**
  * @function getUserProfile

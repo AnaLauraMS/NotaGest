@@ -11,40 +11,68 @@ const JWT_SECRET = process.env.JWT_SECRET; // Chave secreta para assinatura de t
 const BACKEND_URL = process.env.BACKEND_URL; // URL base do serviço de backend para comunicação interna
 
 /**
- * @swagger
- * /register:
- * post:
+ * @openapi
  * tags:
- * - Autenticação
- * summary: Registra um novo usuário e cria um perfil.
- * requestBody:
- * required: true
- * content:
- * application/json:
- * schema:
- * $ref: '#/components/schemas/RegisterInput'
- * responses:
- * 201:
- * description: Usuário criado com sucesso e perfil sincronizado.
- * content:
- * application/json:
- * schema:
- * $ref: '#/components/schemas/RegisterSuccess'
- * 400:
- * description: Erro de validação ou email já cadastrado.
- * content:
- * application/json:
- * schema:
- * type: object
- * properties:
- * error:
- * type: string
- * example: 'Email já cadastrado.'
- * 500:
- * description: Erro interno do servidor.
- * 503:
- * description: Conta de autenticação criada, mas falha ao sincronizar perfil.
+ *   - name: Autenticação
+ *     description: Endpoints para registro e login de usuários
  */
+
+/**
+ * @openapi
+ * /register:
+ *   post:
+ *     tags: [Autenticação]
+ *     summary: Registra um novo usuário no sistema
+ *     description: Cria um novo usuário no microsserviço de autenticação e retorna confirmação.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/RegisterInput'
+ *     responses:
+ *       201:
+ *         description: Usuário criado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RegisterSuccess'
+ *       400:
+ *         description: Usuário já cadastrado ou dados inválidos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+
+/**
+ * @openapi
+ * /login:
+ *   post:
+ *     tags: [Autenticação]
+ *     summary: Realiza login e retorna o token JWT
+ *     description: Autentica o usuário com base em e-mail e senha e retorna o token JWT válido.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/LoginInput'
+ *     responses:
+ *       200:
+ *         description: Login realizado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/LoginSuccess'
+ *       401:
+ *         description: Credenciais inválidas
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+
 
 /**
  * @function generateToken
@@ -126,44 +154,6 @@ const registerUser = async (req, res) => {
     }
 };
 
-/**
- * @swagger
- * /login:
- * post:
- * tags:
- * - Autenticação
- * summary: Autentica o usuário e retorna um JSON Web Token (JWT).
- * requestBody:
- * required: true
- * content:
- * application/json:
- * schema:
- * $ref: '#/components/schemas/LoginInput'
- * responses:
- * 200:
- * description: Login bem-sucedido e token JWT retornado.
- * headers:
- * x-auth-token:
- * schema:
- * type: string
- * description: Token JWT retornado no corpo da resposta.
- * content:
- * application/json:
- * schema:
- * $ref: '#/components/schemas/LoginSuccess'
- * 400:
- * description: Credenciais inválidas (email ou senha incorretos).
- * content:
- * application/json:
- * schema:
- * type: object
- * properties:
- * error:
- * type: string
- * example: 'Credenciais inválidas.'
- * 500:
- * description: Erro interno do servidor.
- */
 
 /**
  * @function loginUser

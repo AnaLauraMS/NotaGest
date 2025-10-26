@@ -5,6 +5,30 @@ const userController = require('../controllers/userController');
 // Importa o middleware de verificação do JWT
 const { protect } = require('../middleware/auth'); 
 
+/**
+ * @openapi
+ * /api/users/{id}:
+ *   get:
+ *     tags:
+ *       - Users
+ *     summary: Busca perfil do usuário (somente o próprio usuário)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Perfil do usuário
+ *       403:
+ *         description: Acesso proibido
+ *       404:
+ *         description: Não encontrado
+ */
+
 
 // Rota INTERNA de Criação (Não requer token JWT, mas deve ser protegida no nível de rede)
 // POST /api/users/internal: Usada pelo Microsserviço de Identidade para sincronizar um novo perfil.

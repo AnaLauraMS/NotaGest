@@ -7,6 +7,43 @@ const { protect } = require('../middleware/auth'); // Middleware de autenticaç�
 // Importa a configuração do Multer para processar o arquivo
 const uploadMiddleware = require('../middleware/uploads'); 
 
+/**
+ * @openapi
+ * tags:
+ *   - name: Upload de Arquivos
+ *     description: Envio de arquivos para o servidor (formato multipart)
+ */
+
+/**
+ * @openapi
+ * /api/uploadfile:
+ *   post:
+ *     tags: [Upload de Arquivos]
+ *     summary: Faz upload de um arquivo PDF, imagem ou nota fiscal
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Retorna o caminho do arquivo salvo
+ *         content:
+ *           application/json:
+ *             example:
+ *               filePath: "/uploads/1718205958340-nota-fiscal.pdf"
+ *       400:
+ *         description: Nenhum arquivo enviado
+ */
+
+
 /*
  * @route   POST /api/uploadfile
  * @desc    Recebe um arquivo, salva-o no servidor e retorna o caminho.
