@@ -2,29 +2,35 @@
 
 import axios from 'axios';
 
-// 1. Cria uma instância do Axios com a URL base do seu backend
+// Cria uma instância do Axios configurada com a URL base do backend
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_BACKEND_URL, 
+    // Usa a variável de ambiente para definir o endereço do servidor
+    baseURL: process.env.NEXT_PUBLIC_BACKEND_URL, 
 });
 
-// 2. Interceptor: Uma função que é executada ANTES de cada requisição
-// Isso é perfeito para adicionar o token de autenticação dinamicamente
+/**
+ * Interceptor de Requisição.
+ * Adiciona o token JWT (se existir no armazenamento local) a cada requisição enviada.
+ * Isso garante que todas as chamadas para rotas protegidas sejam autenticadas automaticamente.
+ */
 api.interceptors.request.use(
-  (config) => {
-    // Pega o token do localStorage
-    const token = localStorage.getItem('authToken');
-    
-    // Se o token existir, adiciona ao cabeçalho de autorização
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    (config) => {
+        // Tenta obter o token de autenticação do armazenamento do navegador
+        const token = localStorage.getItem('authToken');
+        
+        // Se o token for encontrado, ele é injetado no cabeçalho 'Authorization'
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        
+        // Permite que a requisição prossiga com a configuração atualizada
+        return config; 
+    },
+    (error) => {
+        // Trata ou repassa erros que ocorrerem antes do envio da requisição
+        return Promise.reject(error);
     }
-    
-    return config; // Retorna a configuração para a requisição continuar
-  },
-  (error) => {
-    // Em caso de erro na configuração da requisição
-    return Promise.reject(error);
-  }
 );
 
+// Exporta a instância da API para ser usada em toda a aplicação frontend
 export default api;
