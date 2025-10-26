@@ -1,20 +1,21 @@
-// importação o Mongoose para interagir com o MongoDB
+// Importa o pacote Mongoose para gerenciamento do MongoDB
 const mongoose = require('mongoose');
-// carrega as variáveis de ambiente
+// Carrega todas as variáveis de ambiente do arquivo .env
 require('dotenv').config();
 
-// função para conectar ao MongoDB
+// Define a função de conexão assíncrona com o banco de dados
 const connectDB = async () => {
     try {
-        // utiliza o .env para pegar a URL do MongoDB de conexão
+        // Tenta conectar usando a URL definida na variável de ambiente
         await mongoose.connect(process.env.MONGO_URI);
         console.log('MongoDB conectado com sucesso!');
     } catch (err) {
-        // em caso de erro, aparece a mensagem
+        // Exibe uma mensagem de erro em caso de falha na conexão
         console.error('Erro de conexão com o MongoDB:', err.message);
+        // Encerra o processo com erro
         process.exit(1);
     }
 };
 
-// Exporta a função de conexão para ser usada em server.js
+// Torna a função de conexão disponível para outros módulos
 module.exports = connectDB;
