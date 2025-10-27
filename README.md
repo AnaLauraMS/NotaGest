@@ -2,7 +2,7 @@
   <img src="https://i.postimg.cc/NGWntpMc/Logo-Horizontal.png" alt="Logo do NotaGest" width="250"/>
 </p>
 
-<h1 align="center">NotaGest — Sistema de Gerenciamento de Notas Fiscais</h1>
+<h1 align="center">Sistema de Gerenciamento de Notas Fiscais</h1>
 
 <p align="center">
   Plataforma completa para o armazenamento, controle e exportação de notas fiscais de construção e reforma.
