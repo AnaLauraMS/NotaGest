@@ -1,3 +1,4 @@
+"use client";
 import React, { useState } from 'react';
 
 const ContactUs = () => {
@@ -29,13 +30,15 @@ const ContactUs = () => {
 
   // onChange chama handleChange para atualizar o estado sempre que o usuário digita.
   return (
-    <div className="flex flex-col justify-center items-center mx-auto w-full bg-[#0c4a6e] font-jakarta py-10 px-4">
-      <h2 className="text-4xl text-white mb-15 font-bold">Fale Conosco</h2>
+    <div className="flex flex-col justify-center items-center w-full bg-[#0c4a6e] font-[Plus Jakarta Sans] py-16 px-4" id="contact-us-section">
+      <h2 className="text-4xl text-white mb-10 font-bold">Fale Conosco</h2>
       
-      <form onSubmit={handleSubmit} className="flex flex-col items-center">
-        <div className="mb-5">
-          {/* Campo de nome */}
-          <label htmlFor="name" className="hidden">Nome</label>
+      {/* Container principal do formulário com largura máxima para desktop */}
+      <form onSubmit={handleSubmit} className="flex flex-col items-center w-full max-w-xl">
+        
+        {/* Campo de nome */}
+        <div className="mb-5 w-full">
+          <label htmlFor="name" className="sr-only">Nome</label>
           <input
             type="text"
             id="name"
@@ -44,12 +47,14 @@ const ContactUs = () => {
             value={formData.name}
             onChange={handleChange}
             required
-            className="bg-white w-72 sm:w-[28rem] p-2 border border-gray-300 rounded-md font-jakarta"
+            // w-full para ser responsivo, com padding e bordas arredondadas
+            className="bg-white w-full p-3 border border-gray-300 rounded-lg placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#059669] transition duration-200"
           />
         </div>
-        <div className="mb-5">
-          {/* Campo de email */}
-          <label htmlFor="email" className="hidden">Email</label>
+        
+        {/* Campo de email */}
+        <div className="mb-5 w-full">
+          <label htmlFor="email" className="sr-only">Email</label>
           <input
             type="email"
             id="email"
@@ -58,12 +63,13 @@ const ContactUs = () => {
             value={formData.email}
             onChange={handleChange}
             required
-            className="bg-white w-72 sm:w-[28rem] p-2 border border-gray-300 rounded-md font-jakarta"
+            className="bg-white w-full p-3 border border-gray-300 rounded-lg placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#059669] transition duration-200"
           />
         </div>
-        <div className="mb-5">
-          {/* Campo de telefone */}
-          <label htmlFor="phone" className="hidden">Telefone</label>
+        
+        {/* Campo de telefone */}
+        <div className="mb-5 w-full">
+          <label htmlFor="phone" className="sr-only">Telefone</label>
           <input
             type="tel"
             id="phone"
@@ -72,12 +78,13 @@ const ContactUs = () => {
             value={formData.phone}
             onChange={handleChange}
             required
-            className="bg-white w-72 sm:w-[28rem] p-2 border border-gray-300 rounded-md font-jakarta"
+            className="bg-white w-full p-3 border border-gray-300 rounded-lg placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#059669] transition duration-200"
           />
         </div>
-        <div className="mb-5">
-          {/* Campo de mensagem */}
-          <label htmlFor="message" className="hidden">Mensagem</label>
+        
+        {/* Campo de mensagem */}
+        <div className="mb-8 w-full">
+          <label htmlFor="message" className="sr-only">Mensagem</label>
           <textarea
             id="message"
             name="message"
@@ -85,15 +92,16 @@ const ContactUs = () => {
             value={formData.message}
             onChange={handleChange}
             required
-            className="bg-white w-72 sm:w-[28rem] p-2 border border-gray-300 rounded-md font-jakarta"
+            rows={5} // Aumenta a altura para melhor usabilidade
+            className="bg-white w-full p-3 border border-gray-300 rounded-lg placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#059669] transition duration-200 resize-none"
           />
         </div>
 
-        {/* Botão de envio do formulário */}
+        {/* Botão de envio do formulário (w-full para ser responsivo) */}
         <button 
           type="submit" 
-          className="w-80 p-2 bg-[#059669] text-white rounded-md transition-all hover:bg-[#06a774]">
-          Enviar
+          className="w-full p-3 bg-[#059669] text-white font-semibold rounded-lg transition-all duration-200 hover:bg-[#06a774] shadow-md">
+          Enviar Mensagem
         </button>
       </form>
     </div>

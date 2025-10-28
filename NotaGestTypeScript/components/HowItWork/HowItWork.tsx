@@ -1,55 +1,71 @@
+"use client";
+
 import React from 'react';
-import Image from 'next/image';
-import vetor from '../../assets/Vector 5.png';
+
+// A função ConnectionLine foi removida conforme solicitado.
 
 const HowItWork = () => {
-  return (
-    <section className="text-center py-12 font-[Plus Jakarta Sans] mb-20 ml-20 mr-20 mt-5" id="how-it-work-section">
-      <h2 className="font-bold text-5xl mb-12">Como Funciona</h2>
-      <p className="mb-24 text-base">
-        Com uma interface amigável e recursos que atendem desde profissionais da construção civil até proprietários de imóveis,
-        você terá controle total sobre seus arquivos em poucos passos. Veja como é simples começar a organizar seus documentos com
-        segurança e praticidade.
-      </p>
-      <div className="caixas flex items-center justify-center">
-        <div className="caixa flex flex-col items-center">
-          <h3 className="font-bold title-how text-[#0c4a6e] bg-[#e2e2e2] w-24 h-28 rounded-[1.5rem] flex items-center justify-center text-7xl">
-            1
-          </h3>
-          <div className="text-center mt-4">
-            <h4 className="h4 text-xl">Criação de conta</h4>
-            <p className="description text-sm mt-4">Inscreva-se em minutos inserindo algumas informações básicas, como nome, e-mail e senha.</p>
-          </div>
-        </div>
-        <div className="pb-30 w-100">
-          <Image src={vetor} alt="Vetor" />
-        </div>
-        <div className="caixa flex flex-col items-center">
-          <h3 className="font-bold title-how text-[#0c4a6e] bg-[#e2e2e2] w-24 h-28 rounded-[1.5rem] flex items-center justify-center text-7xl">
-            2
-          </h3>
-          <div className="text-center mt-4">
-            <h4 className="h4 text-xl">Upload de documentos</h4>
-            <p className="description text-sm mt-4">Carregue fotos, PDFs e outros documentos diretamente do seu computador ou dispositivo móvel.</p>
-          </div>
-        </div>
-        <div className="pb-25 w-100">
-          <Image src={vetor} alt="Vetor" />
-        </div>
-        <div className="caixa flex flex-col items-center">
-          <h3 className="font-bold title-how text-[#0c4a6e] bg-[#e2e2e2] w-24 h-28 rounded-[1.5rem] flex items-center justify-center text-7xl">
-            3
-          </h3>
-          <div className="text-center mt-4">
-            <h4 className="h4 text-xl">Organize e categorize</h4>
-            <p className="description text-sm mt-4">Classifique seus documentos por categorias ou até por data. Isso facilita a organização e o acesso posterior.</p>
-          </div>
-        </div>
-      </div>
-      <div className="global-description">
-      </div>
-    </section>
-  );
+    const stepsData = [
+        {
+            number: 1,
+            title: "Criação de Conta",
+            description: "Inscreva-se em minutos inserindo algumas informações básicas, como nome, e-mail e senha."
+        },
+        {
+            number: 2,
+            title: "Upload de Documentos",
+            description: "Carregue fotos, PDFs e outros documentos diretamente do seu computador ou dispositivo móvel."
+        },
+        {
+            number: 3,
+            title: "Organize e Categorize",
+            description: "Classifique seus documentos por categorias ou até por data. Isso facilita a organização e o acesso posterior."
+        },
+    ];
+
+    return (
+        <section 
+            // Ajuste das margens laterais (ml-20 mr-20) para um padding responsivo (px-4 md:px-12)
+            className="text-center py-12 md:py-20 font-[Plus Jakarta Sans] px-4 md:px-12 mt-5" 
+            id="how-it-work-section"
+        >
+            <h2 className="font-bold text-4xl sm:text-5xl mb-12 text-[#0c4a6e]">Como Funciona</h2>
+            
+            <p className="mb-16 md:mb-24 text-base max-w-4xl mx-auto text-gray-700">
+                Com uma interface amigável e recursos que atendem desde profissionais da construção civil até proprietários de imóveis,
+                você terá controle total sobre seus arquivos em poucos passos. Veja como é simples começar a organizar seus documentos com
+                segurança e praticidade.
+            </p>
+            
+            {/* Contêiner de Passos: 
+                Em mobile, usamos flex-col para empilhar verticalmente.
+                Em desktop (md:), usamos flex-row para exibir horizontalmente.
+                Adicionamos 'gap-8' para espaçar os itens após a remoção das linhas de conexão.
+            */}
+            <div className="flex flex-col md:flex-row items-center md:items-start justify-center gap-8 md:gap-12">
+                {stepsData.map((step) => (
+                    <div key={step.number} className="flex flex-col items-center max-w-xs md:max-w-[200px] w-full">
+                        {/* Número da Caixa */}
+                        <div className="font-bold text-[#0c4a6e] bg-[#e2e2e2] w-20 h-20 md:w-24 md:h-28 rounded-xl flex items-center justify-center text-5xl md:text-7xl shadow-lg transform hover:scale-105 transition duration-300">
+                            {step.number}
+                        </div>
+                        
+                        {/* Descrição do Passo */}
+                        <div className="text-center mt-4 p-2">
+                            <h4 className="h4 text-xl font-semibold text-[#0c4a6e]">{step.title}</h4>
+                            <p className="description text-sm mt-2 text-gray-600">
+                                {step.description}
+                            </p>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            <div className="global-description">
+                {/* Você pode adicionar um call-to-action ou descrição global aqui */}
+            </div>
+        </section>
+    );
 };
 
 export default HowItWork;
