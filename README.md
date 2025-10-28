@@ -85,7 +85,22 @@ A seguir estão as principais **funcionalidades** e **requisitos** do sistema:
 
 ## 📊 Entregas de Sprints  
 
- 
+### Sprint 2 — Login / Cadastro (23–30 de outubro)
+- Implementação das telas de **Login e Cadastro**
+- Validação de credenciais (email/senha)
+- Integração com backend (JWT e bcrypt)
+- Middleware de autenticação  
+
+![Sprint 2](https://i.postimg.cc/qBmkBsH9/sprint-2.png)
+
+### Sprint 3 — Adicionar Arquivo 
+- Funcionalidades de upload, exclusão e gerenciamento de documentos
+- Exportação de relatórios em PDF e Excel
+- Implementação de filtros, paginação e validações
+- Integração com armazenamento e APIs externas  
+
+![Sprint 3](https://i.postimg.cc/FRr4NRWH/Sprint-3.png)  
+
 
 ## 🧩 Tecnologias Utilizadas
 
