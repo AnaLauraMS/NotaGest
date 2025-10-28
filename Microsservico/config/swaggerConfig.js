@@ -19,11 +19,16 @@ const swaggerOptions = {
 
     // 2️⃣ Configuração dos servidores disponíveis
     servers: [
-      {
-        url: `http://localhost:${process.env.PORT || 5001}/api/auth`,
-        description: 'Servidor Local de Desenvolvimento',
-      },
-    ],
+    {
+        // 💡 Substitua pelo seu domínio REAL do Backend Principal
+        url: 'https://api.notagest.com/api', 
+        description: 'Servidor de Produção'
+    },
+    {
+        url: `http://localhost:${process.env.PORT || 5000}/api`,
+        description: 'Servidor Local'
+    }
+],
 
     // 3️⃣ Componentes globais (schemas e segurança)
     components: {
