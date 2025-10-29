@@ -13,7 +13,7 @@ const options = {
     servers: [
         // 🚀 1. BACKEND PRINCIPAL (Geralmente porta 5000)
         { 
-          url: 'https://api.notagest.com/api', // <-- **SUBSTITUA PELO DOMÍNIO REAL DO SEU BACKEND/API PRINCIPAL**
+          url: 'https://api.notagest.com/api',
           description: 'Servidor de Produção - Backend Principal (Usuários, Imóveis, Arquivos)' 
         },
         // 🚀 2. MICROSSERVIÇO DE AUTENTICAÇÃO (Geralmente porta 5001)
