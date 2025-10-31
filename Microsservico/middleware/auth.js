@@ -26,7 +26,6 @@ const generateToken = (id, email) => {
     );
 };
 
-
 /**
  * @function registerUser
  * @description Controller para o registro de novos usuários no sistema de autenticação.
