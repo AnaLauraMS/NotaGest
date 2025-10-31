@@ -17,7 +17,7 @@ import autoTable from "jspdf-autotable";
 import axios from 'axios';
 import api from '../../utils/api';
 
-// --- TIPAGEM ---
+// --- (Sua tipagem e a função decodeJwt permanecem iguais) ---
 type Property = {
     _id: string;
     nome: string;
@@ -45,39 +45,25 @@ type Arquivo = {
     observation?: string;
     filePath?: string;
 };
-// --- FIM TIPAGEM ---
 
-// --- [NOVO BLOCO 1/2] ---
-/**
- * @function decodeJwt
- * @description Decodifica o payload de um JWT localmente (sem verificar a assinatura).
- * Útil para extrair o ID do usuário e o email do token no frontend.
- * @param {string} token - O JWT completo.
- * @returns {{ id: string, email: string }} Objeto com o ID e o email do usuário.
- */
 function decodeJwt(token: string): { id: string, email: string, [key: string]: any } {
     try {
-        // Separa o token nas três partes (header.payload.signature)
         const base64Url = token.split('.')[1];
-        // Converte a string base64url para base64 padrão
         const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        // Decodifica a base64 e o JSON
         const jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
             return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
         }).join(''));
-
         return JSON.parse(jsonPayload);
     } catch (e) {
         console.error("Erro ao decodificar JWT", e);
-        // Retorna um objeto vazio em caso de falha
         return { id: '', email: '' };
     }
 }
-// --- [FIM DO NOVO BLOCO 1/2] ---
+// --- FIM DA SEÇÃO ---
 
 
 const UploadsPage = () => {
-    // --- ESTADOS DE DADOS E UI ---
+    // --- (Seus estados permanecem os mesmos) ---
     const [files, setFiles] = useState<Arquivo[]>([]);
     const [properties, setProperties] = useState<Property[]>([]);
     const [isModalOpen, setModalOpen] = useState(false);
@@ -87,123 +73,96 @@ const UploadsPage = () => {
     const [filesPerPage] = useState(15);
     const menuRef = useRef(null);
     const router = useRouter();
-    // Adicione o hook useSearchParams para ler a URL
     const searchParams = useSearchParams();
     const [isPropertyMenuOpen, setIsPropertyMenuOpen] = useState(false);
     const [userEmail, setUserEmail] = useState<string | null>(null);
-
-    // NOVO ESTADO: Armazena o nome do imóvel selecionado para filtrar
     const [selectedPropertyName, setSelectedPropertyName] = useState<string | null>(null);
     // --- FIM ESTADOS ---
 
-    // --- FUNÇÕES AUXILIARES ---
+    // --- (Suas funções auxiliares handleLogoff e fetchData permanecem as mesmas) ---
     const handleLogoff = useCallback(() => {
         localStorage.removeItem('authToken');
         localStorage.removeItem('userId');
         localStorage.removeItem('userEmail');
-        // Redireciona para a home (ou /login se existir neste app)
         router.push('/');
-    }, [router]); // Adiciona 'router' como dependência
+    }, [router]);
 
-    /**
-     * @function fetchData
-     * @description Busca arquivos e imóveis na API, aplicando o filtro de imóvel.
-     */
     const fetchData = useCallback(async () => {
-        // 1. Define o endpoint de arquivos, adicionando o filtro se um imóvel estiver selecionado
         const filesEndpoint = selectedPropertyName
-            ? `/api/uploads?propertyId=${selectedPropertyName}` // Backend usará isso para filtrar
+            ? `/api/uploads?propertyId=${selectedPropertyName}`
             : '/api/uploads';
-
         try {
             const filesPromise = api.get(filesEndpoint);
             const propertiesPromise = api.get('/api/imoveis');
-
             const [filesResponse, propertiesResponse] = await Promise.all([
                 filesPromise,
                 propertiesPromise
             ]);
-
             setFiles(filesResponse.data);
             setProperties(propertiesResponse.data);
         } catch (error) {
             console.error("Falha ao buscar dados:", error);
             if (axios.isAxiosError(error)) {
-                alert(`Erro: ${error.response?.data?.message || 'Falha ao carregar dados.'}`);
-                // Se for erro de autenticação, desloga
+                // O log "Falha ao buscar dados: K" vem daqui. 
+                // O "K" é prov. de (error.message) ou (error.response.data.message)
+                alert(`Erro: ${error.response?.data?.message || error.message || 'Falha ao carregar dados.'}`);
                 if (error.response?.status === 401) {
                     handleLogoff();
                 }
             }
         }
-    }, [selectedPropertyName, handleLogoff]); // Adiciona handleLogoff como dependência
+    }, [selectedPropertyName, handleLogoff]);
+    // --- FIM FUNÇÕES AUXILIARES ---
 
-    // --- EFEITOS (LIFECYCLE) ---
 
-    // --- [NOVO BLOCO 2/2] ---
-    // Este useEffect é responsável por capturar e limpar o token da URL
+    // --- [MUDANÇA PRINCIPAL AQUI] ---
+    // Substitua TODOS os seus blocos useEffect por este ÚNICO bloco.
     useEffect(() => {
-        // 1. Procura pelo token na URL
         const tokenFromUrl = searchParams.get('token');
+        let effectiveToken = localStorage.getItem('authToken');
+        let effectiveEmail = localStorage.getItem('userEmail');
 
         if (tokenFromUrl) {
-            console.log("Token encontrado na URL, processando...");
+            // CASO 1: Token encontrado na URL (novo login)
+            console.log("Token da URL encontrado, processando...");
             try {
-                // 2. Salva o token no localStorage
+                // Salva tudo no localStorage
                 localStorage.setItem('authToken', tokenFromUrl);
-
-                // 3. Decodifica e salva os dados do usuário
                 const { id, email } = decodeJwt(tokenFromUrl);
                 localStorage.setItem('userId', id);
                 localStorage.setItem('userEmail', email);
 
-                // 4. Atualiza o estado da UI (para o header)
-                setUserEmail(email);
+                // Define as variáveis para este render
+                effectiveToken = tokenFromUrl;
+                effectiveEmail = email;
 
-                // 5. Limpa a URL (remove o token da barra de endereço)
-                // Isso atualiza a URL sem recarregar a página
+                // Limpa a URL (remove o token)
                 router.replace('/uploads', { scroll: false });
-
-                // 6. O token está salvo. O useEffect abaixo será 
-                // acionado e chamará o fetchData()
-
-            } catch (error) {
-                console.error("Falha ao processar o token da URL:", error);
-                handleLogoff(); // Token inválido, desloga
+            } catch (e) {
+                console.error("Token da URL é inválido", e);
+                handleLogoff(); // Desloga se o token for ruim
+                return; // Para a execução
             }
         }
-    }, [searchParams, router, handleLogoff]); // Roda SÓ quando a URL é processada
-    // --- [FIM DO NOVO BLOCO 2/2] ---
 
-    // Este é o seu useEffect original. Ele agora rodará DEPOIS
-    // que o useEffect acima salvar o token.
-    useEffect(() => {
-        // Lógica de segurança: só busca dados se houver um token
-        const storedToken = localStorage.getItem('authToken');
-        if (!storedToken) {
-            // Se não houver token (nem na URL nem no storage), desloga.
-            const tokenFromUrl = searchParams.get('token'); // Verifica de novo
-            if (!tokenFromUrl) {
-                console.log("Nenhum token, redirecionando para logoff.");
-                handleLogoff();
-            }
-            return; // Não busca dados se não houver token
+        // AGORA, verificamos se temos um token (seja da URL ou do storage)
+        if (effectiveToken) {
+            // CASO 2: Temos um token. Configure a UI e busque os dados.
+            setUserEmail(effectiveEmail);
+            fetchData(); // SÓ CHAMAMOS O FETCHDATA AQUI
+        } else {
+            // CASO 3: Sem token na URL e sem token no storage.
+            console.log("Nenhum token encontrado, redirecionando para logoff.");
+            handleLogoff();
         }
 
-        const storedEmail = localStorage.getItem('userEmail');
-        if (storedEmail) {
-            setUserEmail(storedEmail);
-        }
-        fetchData();
-        // O useEffect agora reexecuta a busca sempre que o filtro de imóvel muda
-    }, [fetchData, searchParams, handleLogoff]); // Adicionei searchParams e handleLogoff
+    }, [searchParams, router, handleLogoff, fetchData]); // Dependências
+    // --- [FIM DA MUDANÇA PRINCIPAL] ---
 
-    // --- HANDLERS DE AÇÃO ---
 
-    /**
-     * @function addFile
-     * @description Lida com o upload do arquivo e o registro dos metadados.
-     */
+    // --- (O restante do seu arquivo: addFile, deleteFile, generatePDF, e todo o JSX) ---
+    // --- (Permanece exatamente o mesmo) ---
+
     const addFile = async (fileData: NewFilePayload, file: File | null) => {
         let uploadedFilePath: string | undefined = undefined;
 
@@ -213,7 +172,6 @@ const UploadsPage = () => {
             formData.append('file', file);
 
             try {
-                // PRIMEIRO: Upload do arquivo
                 const uploadResponse = await api.post('/api/uploadfile', formData, {
                     headers: { 'Content-Type': 'multipart/form-data' },
                 });
@@ -231,13 +189,10 @@ const UploadsPage = () => {
         }
 
         try {
-            // SEGUNDO: Salva os metadados no MongoDB
             const response = await api.post('/api/uploads', {
                 ...fileData,
                 filePath: uploadedFilePath
             });
-
-            // Atualiza o estado da lista de arquivos
             setFiles(prevFiles => [response.data, ...prevFiles]);
             setModalOpen(false);
             alert('Nota fiscal adicionada com sucesso!');
@@ -251,24 +206,17 @@ const UploadsPage = () => {
         }
     };
 
-    /**
-     * @function handleViewFile
-     * @description Busca o arquivo físico no backend e o exibe/baixa.
-     */
     const handleViewFile = async (filePath: string | undefined) => {
         if (!filePath) {
             alert("Este registro não possui arquivo anexado.");
             return;
         }
 
-        // Endpoint público no seu backend para servir o arquivo estático (protegido por middleware)
         const fileServerUrl = `/uploads/${filePath}`;
         try {
             const response = await api.get(fileServerUrl, {
-                responseType: 'blob', // Recebe a resposta como binário
+                responseType: 'blob',
             });
-
-            // Cria um URL temporário para o Blob e abre em nova aba
             const fileBlob = new Blob([response.data], { type: response.headers['content-type'] });
             const blobUrl = URL.createObjectURL(fileBlob);
             window.open(blobUrl, '_blank');
@@ -276,7 +224,6 @@ const UploadsPage = () => {
         } catch (error) {
             console.error("Erro ao visualizar/baixar arquivo:", error);
             if (axios.isAxiosError(error) && error.response) {
-                // Lida com a resposta de erro (que pode não ser um Blob simples)
                 try {
                     const errorBlob = error.response.data as Blob;
                     const errorText = await errorBlob.text();
@@ -291,10 +238,6 @@ const UploadsPage = () => {
         }
     };
 
-    /**
-     * @function deleteFile
-     * @description Remove o registro de metadados do arquivo do MongoDB.
-     */
     const deleteFile = async (fileId: string) => {
         try {
             if (!window.confirm("Tem certeza que deseja excluir este arquivo?")) return;
@@ -311,10 +254,6 @@ const UploadsPage = () => {
         }
     };
 
-    /**
-     * @function handleAddProperty
-     * @description Adiciona um novo imóvel e atualiza a lista local.
-     */
     const handleAddProperty = async (propertyData: NewPropertyPayload) => {
         try {
             const response = await api.post('/api/imoveis', propertyData);
@@ -332,10 +271,6 @@ const UploadsPage = () => {
         }
     };
 
-    /**
-     * @function handleDeleteProperty
-     * @description Deleta um imóvel e atualiza a lista local.
-     */
     const handleDeleteProperty = async (propertyId: string) => {
         try {
             if (!window.confirm("Tem certeza que deseja excluir este imóvel?")) return;
@@ -352,7 +287,6 @@ const UploadsPage = () => {
         }
     };
 
-    // --- LÓGICA DE PAGINAÇÃO E PDF ---
     const indexOfLastFile = currentPage * filesPerPage;
     const indexOfFirstFile = indexOfLastFile - filesPerPage;
     const currentFiles = files.slice(indexOfFirstFile, indexOfLastFile);
@@ -364,7 +298,6 @@ const UploadsPage = () => {
         doc.setFontSize(16);
         doc.text("Relatório de Arquivos", 14, 15);
 
-        // Mapeia todos os arquivos (sem paginação) para o PDF
         autoTable(doc, {
             startY: 25,
             head: [["Título", "Valor", "Data da Compra", "Imóvel", "Categoria", "Subcategoria"]],
@@ -378,7 +311,6 @@ const UploadsPage = () => {
             ]),
         });
 
-        // Gera o Blob do PDF e abre a janela de impressão
         const blob = doc.output("blob");
         const blobURL = URL.createObjectURL(blob);
         const iframe = document.createElement("iframe");
@@ -389,9 +321,7 @@ const UploadsPage = () => {
             iframe.contentWindow?.print();
         };
     };
-    // --- FIM LÓGICA DE PAGINAÇÃO E PDF ---
 
-    // --- RENDERIZAÇÃO ---
     return (
         <div className="min-h-screen bg-white font-['Plus_Jakarta_Sans', sans-serif]">
             <header className="bg-sky-900 shadow-lg p-6 flex justify-between items-center rounded-br-4xl">
@@ -434,21 +364,17 @@ const UploadsPage = () => {
                     </nav>
                 </aside>
 
-                <main className="flex-1 p-6 flex flex-col gap-6"> {/* Mudança aqui para flex-col para melhor organização do filtro */}
+                <main className="flex-1 p-6 flex flex-col gap-6">
 
-                    {/* NOVO BLOCO: Filtro por Imóvel */}
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-4 p-4 bg-gray-100 rounded-lg shadow-inner">
                         <label htmlFor="property-filter" className="text-sky-900 font-bold text-lg whitespace-nowrap">Filtrar Arquivos por Imóvel:</label>
                         <select
                             id="property-filter"
-                            // O valor é o nome do imóvel ou uma string vazia para "Todos"
                             value={selectedPropertyName || ''}
-                            // Ao mudar, define o nome do imóvel (ou null se for "Todos")
                             onChange={(e) => setSelectedPropertyName(e.target.value || null)}
                             className="p-3 border border-gray-300 rounded-lg shadow-sm w-full sm:w-60"
                         >
                             <option value="">Todos os Imóveis</option>
-                            {/* Mapeia a lista de imóveis para as opções */}
                             {properties.map(p => (
                                 <option key={p._id} value={p.nome}>{p.nome}</option>
                             ))}
@@ -460,7 +386,6 @@ const UploadsPage = () => {
                             Limpar Filtro
                         </button>
                     </div>
-                    {/* FIM NOVO BLOCO */}
 
                     <div className="flex-1">
                         <h1 className="text-3xl text-center font-semibold text-sky-900 mb-6">
