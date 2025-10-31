@@ -4,7 +4,8 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { MdAccountCircle, MdKeyboardArrowRight } from 'react-icons/md';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+// Importe o useSearchParams para ler a URL
+import { useRouter, useSearchParams } from 'next/navigation';
 import Logo from '/assets/Logo.png';
 import ArquivoNaoEncontrado from '/assets/arquivo_nao_encontrado.jpg';
 import AddFileModal from '../../components/AddFileModal/AddFileModal';
@@ -46,6 +47,35 @@ type Arquivo = {
 };
 // --- FIM TIPAGEM ---
 
+// --- [NOVO BLOCO 1/2] ---
+/**
+ * @function decodeJwt
+ * @description Decodifica o payload de um JWT localmente (sem verificar a assinatura).
+ * Útil para extrair o ID do usuário e o email do token no frontend.
+ * @param {string} token - O JWT completo.
+ * @returns {{ id: string, email: string }} Objeto com o ID e o email do usuário.
+ */
+function decodeJwt(token: string): { id: string, email: string, [key: string]: any } {
+    try {
+        // Separa o token nas três partes (header.payload.signature)
+        const base64Url = token.split('.')[1];
+        // Converte a string base64url para base64 padrão
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        // Decodifica a base64 e o JSON
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+
+        return JSON.parse(jsonPayload);
+    } catch (e) {
+        console.error("Erro ao decodificar JWT", e);
+        // Retorna um objeto vazio em caso de falha
+        return { id: '', email: '' };
+    }
+}
+// --- [FIM DO NOVO BLOCO 1/2] ---
+
+
 const UploadsPage = () => {
     // --- ESTADOS DE DADOS E UI ---
     const [files, setFiles] = useState<Arquivo[]>([]);
@@ -57,10 +87,12 @@ const UploadsPage = () => {
     const [filesPerPage] = useState(15);
     const menuRef = useRef(null);
     const router = useRouter();
+    // Adicione o hook useSearchParams para ler a URL
+    const searchParams = useSearchParams();
     const [isPropertyMenuOpen, setIsPropertyMenuOpen] = useState(false);
     const [userEmail, setUserEmail] = useState<string | null>(null);
     
-    // Filtro de listagem
+    // NOVO ESTADO: Armazena o nome do imóvel selecionado para filtrar
     const [selectedPropertyName, setSelectedPropertyName] = useState<string | null>(null);
     
     // Estado para o submenu de relatórios
@@ -68,31 +100,33 @@ const UploadsPage = () => {
     // --- FIM ESTADOS ---
 
     // --- FUNÇÕES AUXILIARES ---
-    const handleLogoff = () => {
+    const handleLogoff = useCallback(() => {
         localStorage.removeItem('authToken');
         localStorage.removeItem('userId');
         localStorage.removeItem('userEmail');
+        // Redireciona para a home (ou /login se existir neste app)
         router.push('/');
-    };
+    }, [router]); // Adiciona 'router' como dependência
 
     /**
      * @function fetchData
      * @description Busca arquivos e imóveis na API, aplicando o filtro de imóvel.
      */
     const fetchData = useCallback(async () => {
+        // 1. Define o endpoint de arquivos, adicionando o filtro se um imóvel estiver selecionado
         const filesEndpoint = selectedPropertyName 
-            ? `/api/uploads?propertyId=${selectedPropertyName}` 
+            ? `/api/uploads?propertyId=${selectedPropertyName}` // Backend usará isso para filtrar
             : '/api/uploads';
-            
+
         try {
-            const filesPromise = api.get(filesEndpoint); 
+            const filesPromise = api.get(filesEndpoint);
             const propertiesPromise = api.get('/api/imoveis');
-            
+
             const [filesResponse, propertiesResponse] = await Promise.all([
                 filesPromise,
                 propertiesPromise
             ]);
-            
+
             setFiles(filesResponse.data);
             setProperties(propertiesResponse.data);
         } catch (error) {
@@ -104,117 +138,74 @@ const UploadsPage = () => {
                 }
             }
         }
-    }, [selectedPropertyName]);
+    }, [selectedPropertyName]); // Depende do filtro
 
     // --- EFEITOS (LIFECYCLE) ---
+
+    // --- [NOVO BLOCO 2/2] ---
+    // Este useEffect é responsável por capturar e limpar o token da URL
     useEffect(() => {
+        // 1. Procura pelo token na URL
+        const tokenFromUrl = searchParams.get('token');
+
+        if (tokenFromUrl) {
+            console.log("Token encontrado na URL, processando...");
+            try {
+                // 2. Salva o token no localStorage
+                localStorage.setItem('authToken', tokenFromUrl);
+
+                // 3. Decodifica e salva os dados do usuário
+                const { id, email } = decodeJwt(tokenFromUrl);
+                localStorage.setItem('userId', id);
+                localStorage.setItem('userEmail', email);
+
+                // 4. Atualiza o estado da UI (para o header)
+                setUserEmail(email);
+
+                // 5. Limpa a URL (remove o token da barra de endereço)
+                // Isso atualiza a URL sem recarregar a página
+                router.replace('/uploads', { scroll: false });
+
+                // 6. O token está salvo. O useEffect abaixo será 
+                // acionado e chamará o fetchData()
+
+            } catch (error) {
+                console.error("Falha ao processar o token da URL:", error);
+                handleLogoff(); // Token inválido, desloga
+            }
+        }
+    }, [searchParams, router, handleLogoff]); // Roda SÓ quando a URL é processada
+    // --- [FIM DO NOVO BLOCO 2/2] ---
+
+    // Este é o seu useEffect original. Ele agora rodará DEPOIS
+    // que o useEffect acima salvar o token.
+    useEffect(() => {
+        // Lógica de segurança: só busca dados se houver um token
+        const storedToken = localStorage.getItem('authToken');
+        if (!storedToken) {
+            // Se não houver token (nem na URL nem no storage), desloga.
+            const tokenFromUrl = searchParams.get('token'); // Verifica de novo
+            if (!tokenFromUrl) {
+                console.log("Nenhum token, redirecionando para logoff.");
+                handleLogoff();
+            }
+            return; // Não busca dados se não houver token
+        }
+
         const storedEmail = localStorage.getItem('userEmail');
         if (storedEmail) {
             setUserEmail(storedEmail);
         }
         fetchData();
-    }, [fetchData]);
+        // O useEffect agora reexecuta a busca sempre que o filtro de imóvel muda
+    }, [fetchData]); // Depende do fetchData (que depende de selectedPropertyName)
 
-    // --- LÓGICA DE GERAÇÃO DE RELATÓRIOS (PDF) ---
-
-    /**
-     * @function generatePDF
-     * @description Gera um relatório PDF tabular completo, sem agrupamento.
-     */
-    const generatePDF = () => {
-        const doc = new jsPDF();
-        doc.setFontSize(16);
-        doc.text("Relatório Completo de Arquivos", 14, 15);
-        
-        autoTable(doc, {
-            startY: 25,
-            head: [["Título", "Valor", "Data da Compra", "Imóvel", "Categoria", "Subcategoria", "Descrição"]],
-            body: files.map(file => [
-                file.title,
-                `R$ ${file.value?.toFixed(2)}`,
-                new Date(file.purchaseDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' }),
-                file.property,
-                file.category,
-                file.subcategory,
-                file.observation || '-'
-            ]),
-        });
-        
-        doc.output("dataurlnewwindow");
-    };
+    // --- HANDLERS DE AÇÃO ---
 
     /**
-     * @function generateGroupedPDF
-     * @description Gera um relatório PDF agrupado por Categoria e Subcategoria.
+     * @function addFile
+     * @description Lida com o upload do arquivo e o registro dos metadados.
      */
-    const generateGroupedPDF = () => {
-        if (files.length === 0) {
-            alert("Não há dados para gerar o relatório agrupado.");
-            return;
-        }
-
-        const doc = new jsPDF();
-        doc.setFontSize(18);
-        doc.text("Relatório de Arquivos Agrupado", 14, 15);
-        let finalY = 20;
-
-        const groupedFiles = files.reduce((acc, file) => {
-            const categoryKey = file.category;
-            const subcategoryKey = file.subcategory;
-
-            if (!acc[categoryKey]) {
-                acc[categoryKey] = {};
-            }
-            if (!acc[categoryKey][subcategoryKey]) {
-                acc[categoryKey][subcategoryKey] = [];
-            }
-            acc[categoryKey][subcategoryKey].push(file);
-            return acc;
-        }, {} as Record<string, Record<string, Arquivo[]>>);
-
-
-        Object.keys(groupedFiles).forEach(category => {
-            Object.keys(groupedFiles[category]).forEach(subcategory => {
-                const subcategoryFiles = groupedFiles[category][subcategory];
-                const totalCategoryValue = subcategoryFiles.reduce((sum, file) => sum + (file.value || 0), 0);
-
-                // Cabeçalho de Grupo
-                finalY += 5;
-                doc.setFontSize(12);
-                doc.setTextColor(50);
-                doc.text(`[${category}] - ${subcategory} (Total: R$ ${totalCategoryValue.toFixed(2)})`, 14, finalY);
-                finalY += 3;
-
-                // Tabela de Dados
-                autoTable(doc, {
-                    startY: finalY,
-                    head: [["Título", "Valor", "Data", "Imóvel", "Obs."]],
-                    body: subcategoryFiles.map(file => [
-                        file.title,
-                        `R$ ${file.value?.toFixed(2)}`,
-                        new Date(file.purchaseDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' }),
-                        file.property,
-                        file.observation || '-'
-                    ]),
-                    theme: 'striped',
-                    styles: { fontSize: 8 },
-                    didDrawPage: (data) => {
-                        finalY = data.cursor?.y || 20;
-                    }
-                });
-                finalY = (doc as any).lastAutoTable.finalY; 
-                if (finalY > 270) {
-                    doc.addPage();
-                    finalY = 20;
-                }
-            });
-        });
-
-        doc.output("dataurlnewwindow");
-    };
-
-    // --- FIM LÓGICA DE GERAÇÃO DE RELATÓRIOS ---
-
     const addFile = async (fileData: NewFilePayload, file: File | null) => {
         let uploadedFilePath: string | undefined = undefined;
 
@@ -222,7 +213,7 @@ const UploadsPage = () => {
             console.log("Tentando fazer upload do arquivo:", file.name);
             const formData = new FormData();
             formData.append('file', file);
-            
+
             try {
                 const uploadResponse = await api.post('/api/uploadfile', formData, {
                     headers: { 'Content-Type': 'multipart/form-data' },
@@ -270,6 +261,8 @@ const UploadsPage = () => {
             const response = await api.get(fileServerUrl, {
                 responseType: 'blob',
             });
+            
+            // Cria um URL temporário para o Blob e abre em nova aba
             const fileBlob = new Blob([response.data], { type: response.headers['content-type'] });
             const blobUrl = URL.createObjectURL(fileBlob);
             window.open(blobUrl, '_blank');
@@ -361,11 +354,43 @@ const UploadsPage = () => {
         }
     };
     
-    // --- LÓGICA DE PAGINAÇÃO ---
+    // --- LÓGICA DE PAGINAÇÃO E PDF ---
     const indexOfLastFile = currentPage * filesPerPage;
     const indexOfFirstFile = indexOfLastFile - filesPerPage;
     const currentFiles = files.slice(indexOfFirstFile, indexOfLastFile);
     const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+
+    const generatePDF = () => {
+        const doc = new jsPDF();
+        doc.setFontSize(16);
+        doc.text("Relatório de Arquivos", 14, 15);
+        
+        // Mapeia todos os arquivos (sem paginação) para o PDF
+        autoTable(doc, {
+            startY: 25,
+            head: [["Título", "Valor", "Data da Compra", "Imóvel", "Categoria", "Subcategoria"]],
+            body: files.map(file => [
+                file.title,
+                `R$ ${file.value?.toFixed(2)}`,
+                new Date(file.purchaseDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' }),
+                file.property,
+                file.category,
+                file.subcategory
+            ]),
+        });
+        
+        // Gera o Blob do PDF e abre a janela de impressão
+        const blob = doc.output("blob");
+        const blobURL = URL.createObjectURL(blob);
+        const iframe = document.createElement("iframe");
+        iframe.style.display = "none";
+        iframe.src = blobURL;
+        document.body.appendChild(iframe);
+        iframe.onload = () => {
+            iframe.contentWindow?.print();
+        };
+    };
+    // --- FIM LÓGICA DE PAGINAÇÃO E PDF ---
 
     // --- RENDERIZAÇÃO ---
     return (
@@ -432,14 +457,16 @@ const UploadsPage = () => {
                     </nav>
                 </aside>
 
-                <main className="flex-1 p-6 flex flex-col gap-6">
+                <main className="flex-1 p-6 flex flex-col gap-6"> {/* Mudança aqui para flex-col para melhor organização do filtro */}
                     
-                    {/* BLOCO DE FILTRO */}
+                    {/* NOVO BLOCO: Filtro por Imóvel */}
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-4 p-4 bg-gray-100 rounded-lg shadow-inner">
                         <label htmlFor="property-filter" className="text-sky-900 font-bold text-lg whitespace-nowrap">Filtrar Arquivos por Imóvel:</label>
                         <select
                             id="property-filter"
+                            // O valor é o nome do imóvel ou uma string vazia para "Todos"
                             value={selectedPropertyName || ''} 
+                            // Ao mudar, define o nome do imóvel (ou null se for "Todos")
                             onChange={(e) => setSelectedPropertyName(e.target.value || null)}
                             className="p-3 border border-gray-300 rounded-lg shadow-sm w-full sm:w-60"
                         >
@@ -471,7 +498,7 @@ const UploadsPage = () => {
                                 <Image src={ArquivoNaoEncontrado} alt="Nenhum arquivo encontrado" width={160} height={160} className="mb-6 opacity-80 h-60 w-60" />
                                 <h2 className="text-lg font-semibold text-gray-700 mb-5">Nenhum arquivo encontrado</h2>
                                 <p className="text-sm text-gray-500 max-w-xs">
-                                    {selectedPropertyName 
+                                    {selectedPropertyName
                                         ? `Não há arquivos registrados para o imóvel "${selectedPropertyName}".`
                                         : 'Parece que você ainda não adicionou nenhum arquivo. Clique no botão Adicionar Arquivo para enviar seu primeiro documento.'
                                     }
